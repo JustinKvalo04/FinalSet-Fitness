@@ -2,7 +2,21 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### Quick Setup
+1. Copy the `.env.example` file to `.env.local`:
+   ```bash
+   cp .env.example .env.local
+   ```
+2. Fill in your actual variable values in `.env.local` (e.g., Supabase URLs, Stripe keys). *Do not commit this file to version control.*
+3. For deployment (Vercel, EAS), make sure to configure these identical environment variables in their respective dashboards.
+4. To create a clean submission zip without bulky dependencies or secrets, run:
+   ```bash
+   npm run zip:clean
+   ```
+
+### Running the App
+
+First, run the development server for the web app:
 
 ```bash
 npm run dev
