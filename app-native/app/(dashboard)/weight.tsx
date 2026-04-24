@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator, Alert, Platform, Modal, TouchableOpacity } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { KeyboardAwareInput } from '../../components/KeyboardDoneView';
+import { StatInput } from '../../components/StatInput';
 import { HapticButton } from '../../components/HapticButton';
 import { KeyboardFormWrapper } from '../../components/KeyboardFormWrapper';
 
@@ -14,6 +15,7 @@ export default function Weight() {
     const [loading, setLoading] = useState(true);
     const [inputWeight, setInputWeight] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [showGoalModal, setShowGoalModal] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -48,6 +50,21 @@ export default function Weight() {
             if (error) {
                 Alert.alert("Error", error.message);
             } else {
+                const newWeight = parseFloat(inputWeight);
+                if (profile && profile.goal_achieved_acknowledged === false && profile.target_weight) {
+                    let goalReached = false;
+                    if (profile.primary_goal === 'Build Muscle' && newWeight >= profile.target_weight) {
+                        goalReached = true;
+                    } else if (profile.primary_goal === 'Lose Body Fat' && newWeight <= profile.target_weight) {
+                        goalReached = true;
+                    }
+
+                    if (goalReached) {
+                        setShowGoalModal(true);
+                        await supabase.from('profiles').update({ goal_achieved_acknowledged: true }).eq('id', user.id);
+                    }
+                }
+
                 setInputWeight('');
                 fetchData(); // Refresh list
             }
@@ -77,18 +94,13 @@ export default function Weight() {
                     <View className="flex-row items-end mb-2">
                         <View className="flex-1 mr-4">
                             <Text className="text-zinc-400 font-medium mb-2">Today's Weight</Text>
-                            <View className="flex-row items-center bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3">
-                                <KeyboardAwareInput
-                                    value={inputWeight}
-                                    onChangeText={setInputWeight}
-                                    keyboardType="numeric"
-                                    placeholder="175.5"
-                                    placeholderTextColor="#52525b"
-                                    className="flex-1 text-white font-medium text-lg leading-tight"
-                                    style={{ padding: 0 }}
-                                />
-                                <Text className="text-zinc-500 font-medium ml-2">lbs</Text>
-                            </View>
+                            <StatInput
+                                value={inputWeight}
+                                onChangeText={setInputWeight}
+                                placeholder="175.5"
+                                suffix="lbs"
+                                containerClassName="bg-zinc-950 border border-zinc-800 rounded-xl"
+                            />
                         </View>
 
                         <HapticButton
@@ -177,6 +189,68 @@ export default function Weight() {
                     </HapticButton>
                 </View>
             </KeyboardFormWrapper>
-        </View>
+
+            {/* Goal Reached Modal */}
+            <Modal
+                visible={showGoalModal}
+                transparent={true}
+                animationType="fade"
+            >
+                <View className="flex-1 justify-center items-center bg-black/80 px-6">
+                    <View className="bg-zinc-900 border border-zinc-700 w-full rounded-3xl p-8 items-center shadow-2xl shadow-primary/20">
+                        <Text className="text-5xl mb-4">🎉</Text>
+                        <Text className="text-2xl font-bold text-white mb-2 text-center tracking-tight">Goal Reached</Text>
+                        <Text className="text-zinc-400 font-medium text-center text-lg mb-8 leading-relaxed">
+                            Incredible work! You hit your goal weight of <Text className="text-white font-bold">{profile?.target_weight} lbs</Text>. This is a huge milestone!
+                        </Text>
+
+                        <View className="w-full gap-y-3">
+                            <HapticButton
+                                hapticType="success"
+                                onPress={() => {
+                                    setShowGoalModal(false);
+                                    router.push('/(dashboard)/settings');
+                                }}
+                                className="bg-primary py-4 rounded-xl items-center w-full"
+                            >
+                                <Text className="text-primary-foreground font-bold text-lg">Set New Goal</Text>
+                            </HapticButton>
+
+                            <HapticButton
+                                hapticType="light"
+                                onPress={() => {
+                                    setShowGoalModal(false);
+                                    router.push('/(dashboard)/settings');
+                                }}
+                                className="bg-zinc-800 border border-zinc-700 py-4 rounded-xl items-center w-full"
+                            >
+                                <Text className="text-white font-bold text-lg">Update Goal Weight</Text>
+                            </HapticButton>
+
+                            <HapticButton
+                                hapticType="light"
+                                onPress={() => setShowGoalModal(false)}
+                                className="py-4 items-center w-full"
+                            >
+                                <Text className="text-zinc-500 font-bold text-lg">Keep Current Goal</Text>
+                            </HapticButton>
+                        </View>
+
+                        {profile?.subscription_status !== 'active' && (
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setShowGoalModal(false);
+                                    router.push('/(dashboard)/paywall');
+                                }}
+                                className="mt-6 border-t border-zinc-800 w-full pt-6 items-center"
+                            >
+                                <Text className="text-zinc-400 font-medium text-center">Want help setting your next goal?</Text>
+                                <Text className="text-primary font-bold text-center mt-1">Premium adapts your plan automatically</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+            </Modal >
+        </View >
     );
 }

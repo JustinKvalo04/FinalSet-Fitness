@@ -59,7 +59,7 @@ export const KeyboardAwareInput = forwardRef<TextInput, KeyboardAwareInputProps>
                 <View className="bg-zinc-800 border-t border-zinc-700 items-center justify-between flex-row px-4 py-3">
                     {onNext ? (
                         <TouchableOpacity onPress={onNext}>
-                            <Text className="text-zinc-400 font-bold text-lg">Next</Text>
+                            <Text className="text-primary font-bold text-lg">Next</Text>
                         </TouchableOpacity>
                     ) : (
                         <View />

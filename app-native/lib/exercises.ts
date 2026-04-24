@@ -17,6 +17,10 @@ export const CANONICAL_EXERCISES: CanonicalExercise[] = [
     { canonical_name: "Bulgarian Split Squat", muscle_group: "Legs", image_key: "ex_bulgarian_split_squat" },
     { canonical_name: "Standing Calf Raise", muscle_group: "Legs", image_key: "ex_standing_calf_raise" },
     { canonical_name: "Seated Calf Raise", muscle_group: "Legs", image_key: "ex_seated_calf_raise" },
+    { canonical_name: "Barbell Hip Thrust", muscle_group: "Legs", image_key: "ex_barbell_hip_thrust" },
+    { canonical_name: "Cable Kickback", muscle_group: "Legs", image_key: "ex_cable_kickback" },
+    { canonical_name: "Walking Lunge", muscle_group: "Legs", image_key: "ex_walking_lunge" },
+    { canonical_name: "Hip Abductor Machine", muscle_group: "Legs", image_key: "ex_hip_abductor" },
 
     // Chest
     { canonical_name: "Barbell Bench Press", muscle_group: "Chest", image_key: "ex_barbell_bench_press" },
@@ -38,12 +42,15 @@ export const CANONICAL_EXERCISES: CanonicalExercise[] = [
     { canonical_name: "Chest Supported Row", muscle_group: "Back", image_key: "ex_chest_supp_row" },
     { canonical_name: "Machine Row", muscle_group: "Back", image_key: "ex_machine_row" },
     { canonical_name: "Straight Arm Pulldown", muscle_group: "Back", image_key: "ex_straight_arm_pull" },
+    { canonical_name: "Dumbbell Pullover", muscle_group: "Chest", image_key: "ex_dumbbell_pullover" },
 
     // Shoulders
     { canonical_name: "Overhead Press", muscle_group: "Shoulders", image_key: "ex_overhead_press" },
     { canonical_name: "Seated Dumbbell Press", muscle_group: "Shoulders", image_key: "ex_seated_db_press" },
     { canonical_name: "Lateral Raise", muscle_group: "Shoulders", image_key: "ex_lateral_raise" },
-    { canonical_name: "Lateral Raise Machine", muscle_group: "Shoulders", image_key: "ex_mach_lateral_raise" },
+    { canonical_name: "Front Raise", muscle_group: "Shoulders", image_key: "ex_front_raise" },
+    { canonical_name: "Dumbbell Shrug", muscle_group: "Shoulders", image_key: "ex_dumbbell_shrug" },
+    { canonical_name: "Machine Lateral Raise", muscle_group: "Shoulders", image_key: "ex_mach_lateral_raise" },
     { canonical_name: "Cable Lateral Raise", muscle_group: "Shoulders", image_key: "ex_cable_lat_raise" },
     { canonical_name: "Rear Delt Fly", muscle_group: "Shoulders", image_key: "ex_rear_delt_fly" },
     { canonical_name: "Reverse Pec Deck", muscle_group: "Shoulders", image_key: "ex_reverse_pec_deck" },
@@ -76,7 +83,17 @@ export const EXERCISE_ALIASES: Record<string, string> = {
     "cable fly": "Cable Crossover",
     "cable flyes": "Cable Crossover",
     "incline db press": "Incline Dumbbell Press",
+    "incline db presses": "Incline Dumbbell Press",
+    "incline press": "Incline Dumbbell Press",
+    "dumbbell press": "Flat Dumbbell Press",
+    "db press": "Flat Dumbbell Press",
+    "barbell press": "Barbell Bench Press",
     "pec deck machine": "Pec Deck",
+    "pushups": "Push-Up",
+    "push ups": "Push-Up",
+    "pec deck": "Pec Deck",
+    "cable crossover": "Cable Crossover",
+    "cable crossovers": "Cable Crossover",
 
     // Back
     "barbell rows": "Barbell Row",
@@ -85,22 +102,29 @@ export const EXERCISE_ALIASES: Record<string, string> = {
     "db row": "Dumbbell Row",
     "dumbbell rows": "Dumbbell Row",
     "lat pulldowns": "Lat Pulldown",
+    "pull-ups": "Pull-Up",
     "pullups": "Pull-Up",
     "pull ups": "Pull-Up",
     "t-bar rows": "T-Bar Row",
+    "seated cable rows": "Seated Cable Row",
     "cable rows": "Seated Cable Row",
     "cable row": "Seated Cable Row",
     "face pulls": "Face Pull",
-    "dumbbell pullovers": "Straight Arm Pulldown", // closest fallback
+    "straight arm pulldowns": "Straight Arm Pulldown",
+    "straight-arm pulldown": "Straight Arm Pulldown",
+    "dumbbell pullover": "Dumbbell Pullover",
+    "dumbbell pullovers": "Dumbbell Pullover",
 
     // Legs
     "squats": "Barbell Squat",
     "squat": "Barbell Squat",
     "barbell squats": "Barbell Squat",
+    "front squats": "Front Squat",
     "deadlifts": "Deadlift",
     "conventional deadlift": "Deadlift",
     "rdl": "Romanian Deadlift",
     "romanian deadlifts": "Romanian Deadlift",
+    "stiff leg deadlift": "Romanian Deadlift",
     "standing calf raises": "Standing Calf Raise",
     "calf raises": "Standing Calf Raise",
     "seated calf raises": "Seated Calf Raise",
@@ -109,16 +133,31 @@ export const EXERCISE_ALIASES: Record<string, string> = {
     "leg curls": "Leg Curl",
     "seated leg curls": "Leg Curl",
     "bulgarian split squats": "Bulgarian Split Squat",
+    "hip thrusts": "Barbell Hip Thrust",
+    "hip thrust": "Barbell Hip Thrust",
+    "barbell hip thrusts": "Barbell Hip Thrust",
+    "cable kickbacks": "Cable Kickback",
+    "cable kickback": "Cable Kickback",
+    "walking lunges": "Walking Lunge",
+    "walking lunge": "Walking Lunge",
+    "lunges": "Walking Lunge",
+    "lunge": "Walking Lunge",
+    "abduction machine": "Hip Abductor Machine",
+    "hip abductors": "Hip Abductor Machine",
+    "hip abductor": "Hip Abductor Machine",
 
     // Shoulders
     "side laterals": "Lateral Raise",
     "lateral raises": "Lateral Raise",
-    "front raises": "Lateral Raise", // Can group under lateral for basics if no specific front raise
+    "front raises": "Front Raise",
     "seated db press": "Seated Dumbbell Press",
-    "dumbbell shrugs": "Lateral Raise", // Or rear delt
+    "seated shoulder press": "Seated Dumbbell Press",
+    "shoulder press": "Overhead Press",
+    "dumbbell shrugs": "Dumbbell Shrug",
 
     // Arms
     "bicep curls": "Dumbbell Curl",
+    "barbell bicep curls": "Barbell Curl",
     "db curls": "Dumbbell Curl",
     "barbell curls": "Barbell Curl",
     "hammer curls": "Hammer Curl",
@@ -133,6 +172,7 @@ export const EXERCISE_ALIASES: Record<string, string> = {
 
     // Assorted corrections
     "dumbell curl": "Dumbbell Curl",
+    "dumbbell curls": "Dumbbell Curl",
     "dumbell row": "Dumbbell Row",
 };
 

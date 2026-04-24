@@ -114,75 +114,134 @@ export default function Paywall() {
 
     return (
         <ScrollView className="flex-1 bg-zinc-950 px-6 pt-12">
-            <View className="mb-8 items-center mt-8">
-                <View className="w-20 h-20 bg-primary/20 rounded-full items-center justify-center mb-6">
-                    <FontAwesome5 name="star" size={32} color="#0ea5e9" solid />
+            <View className="mb-6 items-center mt-4">
+                <View className="w-16 h-16 bg-primary/20 rounded-full items-center justify-center mb-4">
+                    <FontAwesome5 name="star" size={24} color="#0ea5e9" solid />
                 </View>
-                <Text className="text-3xl font-bold text-white mb-2 text-center">Upgrade to Premium</Text>
-                <Text className="text-zinc-400 text-center leading-6">
-                    Unlock our auto-adjusting macro algorithm and advanced analytics to reach your fitness goals faster.
+                <Text className="text-3xl font-bold text-white mb-2 text-center tracking-tight">Train Smarter. Progress Faster.</Text>
+                <Text className="text-zinc-400 text-center leading-6 text-lg">
+                    Unlock the full FinalSet experience
                 </Text>
+            </View>
+
+            {/* SECTION 1: TRAINING */}
+            <View className="mb-4">
+                <Text className="text-white font-bold text-lg mb-3 ml-2">Training</Text>
+                <View className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-4">
+                    <View className="flex-row items-center">
+                        <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                        <Text className="text-zinc-300 text-base">Custom workouts</Text>
+                    </View>
+                    <View className="flex-row items-center">
+                        <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                        <Text className="text-zinc-300 text-base">Edit exercises</Text>
+                    </View>
+                    <View className="flex-row items-center">
+                        <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                        <Text className="text-zinc-300 text-base">Build your own split</Text>
+                    </View>
+                </View>
+            </View>
+
+            {/* SECTION 2: PROGRESS */}
+            <View className="mb-4">
+                <Text className="text-white font-bold text-lg mb-3 ml-2">Progress</Text>
+                <View className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-4">
+                    <View className="flex-row items-center">
+                        <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                        <Text className="text-zinc-300 text-base">Strength progression tracking</Text>
+                    </View>
+                    <View className="flex-row items-center">
+                        <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                        <Text className="text-zinc-300 text-base">PR analytics</Text>
+                    </View>
+                    <View className="flex-row items-center">
+                        <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                        <Text className="text-zinc-300 text-base">Weight trends</Text>
+                    </View>
+                </View>
+            </View>
+
+            {/* SECTION 3: NUTRITION */}
+            <View className="mb-8">
+                <Text className="text-white font-bold text-lg mb-3 ml-2">Nutrition</Text>
+                <View className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-4">
+                    <View className="flex-row items-center">
+                        <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                        <Text className="text-zinc-300 text-base">Adaptive macros</Text>
+                    </View>
+                    <View className="flex-row items-center">
+                        <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                        <Text className="text-zinc-300 text-base">Weekly insights</Text>
+                    </View>
+                    <View className="flex-row items-center">
+                        <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                        <Text className="text-zinc-300 text-base">Smart calorie adjustments</Text>
+                    </View>
+                </View>
             </View>
 
             <View className="space-y-4 mb-8">
                 {products.length === 0 ? (
-                    <View className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 items-center">
-                        <Text className="text-zinc-400 text-center mb-2">No IAP products available.</Text>
-                        <Text className="text-zinc-500 text-xs text-center border-t border-zinc-800 pt-2">Note: IAP fetching requires a real device or configured simulator. Showing mock UI below.</Text>
-                    </View>
-                ) : (
-                    products.map((product) => (
+                    <>
                         <HapticButton
                             hapticType="success"
-                            key={product.productId}
-                            onPress={() => handlePurchase(product.productId)}
-                            disabled={purchasing}
+                            onPress={() => Alert.alert("Test Mode", "Trigger real Yearly subscription purchase.")}
+                            className="bg-[#0A84FF] border border-[#0A84FF]/50 shadow-lg shadow-[#0A84FF]/20 rounded-3xl p-6 flex-row justify-between items-center"
+                        >
+                            <View>
+                                <Text className="text-white font-bold text-lg mb-1">Yearly Plan</Text>
+                                <View className="bg-white/20 self-start px-2 py-1 rounded-md mb-1">
+                                    <Text className="text-white text-xs font-bold uppercase">Best Value</Text>
+                                </View>
+                            </View>
+                            <View className="items-end">
+                                <Text className="text-white font-bold text-2xl">$89.99<Text className="text-base font-normal">/yr</Text></Text>
+                            </View>
+                        </HapticButton>
+
+                        <HapticButton
+                            hapticType="light"
+                            onPress={() => Alert.alert("Test Mode", "Trigger real Monthly subscription purchase.")}
                             className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex-row justify-between items-center"
                         >
                             <View>
-                                <Text className="text-white font-bold text-lg mb-1">{product.title}</Text>
-                                <Text className="text-zinc-400 text-sm">{product.description}</Text>
+                                <Text className="text-white font-bold text-lg mb-1">Monthly Plan</Text>
+                                <Text className="text-zinc-400 text-sm">Flexible billing</Text>
                             </View>
                             <View className="items-end">
-                                <Text className="text-primary font-bold text-xl">{product.localizedPrice}</Text>
+                                <Text className="text-zinc-300 font-bold text-xl">$9.99<Text className="text-base font-normal">/mo</Text></Text>
                             </View>
                         </HapticButton>
-                    ))
+                    </>
+                ) : (
+                    products.map((product) => {
+                        const isYearly = product.productId.includes('year');
+                        return (
+                            <HapticButton
+                                hapticType={isYearly ? "success" : "light"}
+                                key={product.productId}
+                                onPress={() => handlePurchase(product.productId)}
+                                disabled={purchasing}
+                                className={isYearly ? "bg-[#0A84FF] border border-[#0A84FF]/50 shadow-lg shadow-[#0A84FF]/20 rounded-3xl p-6 flex-row justify-between items-center" : "bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex-row justify-between items-center"}
+                            >
+                                <View>
+                                    <Text className={isYearly ? "text-white font-bold text-lg mb-1" : "text-white font-bold text-lg mb-1"}>{product.title}</Text>
+                                    {isYearly && (
+                                        <View className="bg-white/20 self-start px-2 py-1 rounded-md mb-1">
+                                            <Text className="text-white text-xs font-bold uppercase">Best Value</Text>
+                                        </View>
+                                    )}
+                                    <Text className={isYearly ? "text-white/80 text-sm" : "text-zinc-400 text-sm"}>{product.description}</Text>
+                                </View>
+                                <View className="items-end">
+                                    <Text className={isYearly ? "text-white font-bold text-2xl" : "text-zinc-300 font-bold text-xl"}>{product.localizedPrice}</Text>
+                                </View>
+                            </HapticButton>
+                        );
+                    })
                 )}
             </View>
-
-            {/* Mock buttons for Simulator preview */}
-            {products.length === 0 && (
-                <View className="space-y-4 mb-8">
-                    <HapticButton
-                        hapticType="success"
-                        onPress={() => Alert.alert("Test Mode", "Trigger real Monthly subscription purchase.")}
-                        className="bg-zinc-900 border border-[#0ea5e9]/50 rounded-3xl p-6 flex-row justify-between items-center"
-                    >
-                        <View>
-                            <Text className="text-white font-bold text-lg mb-1">Premium Monthly</Text>
-                            <Text className="text-zinc-400 text-sm">Valid for 30 days</Text>
-                        </View>
-                        <View className="items-end">
-                            <Text className="text-primary font-bold text-xl">$9.99/mo</Text>
-                        </View>
-                    </HapticButton>
-
-                    <HapticButton
-                        hapticType="success"
-                        onPress={() => Alert.alert("Test Mode", "Trigger real Yearly subscription purchase.")}
-                        className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex-row justify-between items-center"
-                    >
-                        <View>
-                            <Text className="text-white font-bold text-lg mb-1">Premium Yearly</Text>
-                            <Text className="text-zinc-400 text-sm">Save 20%</Text>
-                        </View>
-                        <View className="items-end">
-                            <Text className="text-primary font-bold text-xl">$89.99/yr</Text>
-                        </View>
-                    </HapticButton>
-                </View>
-            )}
 
             {purchasing && (
                 <View className="items-center mt-4">
@@ -209,9 +268,9 @@ export default function Paywall() {
 
             <TouchableOpacity
                 onPress={() => router.back()}
-                className="mt-2 mb-12 py-4 items-center"
+                className="mt-2 mb-12 py-4 items-center bg-zinc-900 border border-zinc-800 rounded-2xl mx-6"
             >
-                <Text className="text-zinc-500 font-medium">Maybe later</Text>
+                <Text className="text-zinc-400 font-bold text-lg">Not now</Text>
             </TouchableOpacity>
         </ScrollView>
     );

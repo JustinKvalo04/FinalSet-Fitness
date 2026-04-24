@@ -136,3 +136,12 @@ create table public.program_schedule (
 alter table public.program_schedule enable row level security;
 create policy "Users can CRUD their own program schedule" on public.program_schedule
   for all using (auth.uid() = user_id);
+
+-- Phase 73: Custom Workout Overrides JSONB
+alter table public.profiles
+  add column if not exists custom_workout_overrides jsonb default '{}'::jsonb;
+
+-- Phase 84: Custom Exercises JSONB
+alter table public.profiles
+  add column if not exists custom_exercises jsonb default '[]'::jsonb;
+

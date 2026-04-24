@@ -13,12 +13,44 @@ export type WorkoutDayTemplate = {
     exercises: ExerciseTemplate[];
 };
 
+export type ExerciseOverride = {
+    exercise_id: string;
+    sets: number;
+    reps: string;
+};
+
+export type CustomWorkoutOverrides = {
+    [workoutDayId: string]: ExerciseOverride[];
+};
+
 export type WorkoutSplit = {
     id: string;
     name: string;
     description: string;
     days: WorkoutDayTemplate[];
 };
+
+export function resolveWorkoutDay(
+    dayId: string,
+    dayTemplate: WorkoutDayTemplate,
+    profileOverrides?: CustomWorkoutOverrides | null
+): WorkoutDayTemplate {
+    if (!profileOverrides) return dayTemplate;
+    const dayOverrides = profileOverrides[dayId];
+    if (!dayOverrides || dayOverrides.length === 0) return dayTemplate;
+
+    const resolvedExercises: ExerciseTemplate[] = dayOverrides.map((override, index) => ({
+        id: override.exercise_id + '-' + index,
+        name: override.exercise_id,
+        sets: override.sets,
+        reps: override.reps
+    }));
+
+    return {
+        ...dayTemplate,
+        exercises: resolvedExercises
+    };
+}
 
 export const WORKOUT_SPLITS: WorkoutSplit[] = [
     {
@@ -298,6 +330,63 @@ export const WORKOUT_SPLITS: WorkoutSplit[] = [
                     { id: '134', name: 'Squats', sets: 5, reps: '5' },
                     { id: '135', name: 'Overhead Press', sets: 5, reps: '5' },
                     { id: '136', name: 'Deadlift', sets: 1, reps: '5', notes: '1 heavy working set' },
+                ]
+            }
+        ]
+    },
+    {
+        id: 'split-8',
+        name: 'Lower Body Focus',
+        description: 'Emphasizes lower body development with balanced upper training.',
+        days: [
+            {
+                id: 'lb-1',
+                name: 'Lower (Glute/Ham)',
+                target: 'Glutes, Hamstrings, Calves',
+                exercises: [
+                    { id: '141', name: 'Barbell Hip Thrust', sets: 4, reps: '8-10', notes: 'Squeeze glutes at top' },
+                    { id: '142', name: 'Romanian Deadlift', sets: 4, reps: '8-10' },
+                    { id: '143', name: 'Bulgarian Split Squat', sets: 3, reps: '10-12' },
+                    { id: '144', name: 'Cable Kickbacks', sets: 3, reps: '12-15' },
+                    { id: '145', name: 'Leg Curl', sets: 4, reps: '12-15' },
+                ]
+            },
+            {
+                id: 'ub-1',
+                name: 'Upper (Push/Pull)',
+                target: 'Chest, Back, Arms',
+                exercises: [
+                    { id: '146', name: 'Bench Press', sets: 4, reps: '8-10' },
+                    { id: '147', name: 'Barbell Row', sets: 4, reps: '8-10' },
+                    { id: '148', name: 'Overhead Press', sets: 3, reps: '10-12' },
+                    { id: '149', name: 'Lat Pulldown', sets: 3, reps: '10-12' },
+                    { id: '150', name: 'Bicep Curls', sets: 3, reps: '12-15' },
+                    { id: '151', name: 'Triceps Pushdown', sets: 3, reps: '12-15' },
+                ]
+            },
+            {
+                id: 'lb-2',
+                name: 'Lower (Quad Focus)',
+                target: 'Quads, Calves',
+                exercises: [
+                    { id: '152', name: 'Barbell Squat', sets: 4, reps: '8-10' },
+                    { id: '153', name: 'Walking Lunges', sets: 3, reps: '10-12' },
+                    { id: '154', name: 'Leg Extension', sets: 4, reps: '12-15' },
+                    { id: '155', name: 'Barbell Hip Thrust', sets: 3, reps: '12-15', notes: 'Lighter weight, constant tension' },
+                    { id: '156', name: 'Hip Abductor Machine', sets: 4, reps: '15-20' },
+                ]
+            },
+            {
+                id: 'ub-2',
+                name: 'Upper (Lighter)',
+                target: 'Shoulders, Arms, Core',
+                exercises: [
+                    { id: '157', name: 'Seated Dumbbell Press', sets: 3, reps: '10-12' },
+                    { id: '158', name: 'Lateral Raise', sets: 4, reps: '12-15' },
+                    { id: '159', name: 'Dumbbell Row', sets: 3, reps: '10-12' },
+                    { id: '160', name: 'Incline Dumbbell Press', sets: 3, reps: '10-12' },
+                    { id: '161', name: 'Hammer Curl', sets: 3, reps: '12-15' },
+                    { id: '162', name: 'Cable Crunch', sets: 3, reps: '15-20' },
                 ]
             }
         ]

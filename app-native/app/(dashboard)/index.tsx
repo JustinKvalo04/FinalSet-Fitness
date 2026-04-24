@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Alert, TouchableOpacity, Image } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -244,7 +244,7 @@ export default function DashboardHome() {
                             className="w-11 h-11 rounded-full bg-zinc-800 border-[1.5px] border-zinc-700 items-center justify-center overflow-hidden shadow-sm z-10"
                         >
                             {profile?.avatar_url ? (
-                                <View className="w-full h-full bg-zinc-700" />
+                                <Image source={{ uri: profile.avatar_url }} className="w-full h-full" resizeMode="cover" />
                             ) : (
                                 <Text className="text-zinc-400 font-bold text-lg">
                                     {profile?.full_name ? profile.full_name[0].toUpperCase() : 'A'}
@@ -361,6 +361,31 @@ export default function DashboardHome() {
                             </Text>
                         </HapticButton>
                     </View>
+
+                    {/* Progress & Analytics Button */}
+                    <HapticButton
+                        hapticType="light"
+                        onPress={() => {
+                            if (!isPremium) {
+                                router.push('/(dashboard)/paywall');
+                            } else {
+                                router.push('/(dashboard)/progress');
+                            }
+                        }}
+                        activeOpacity={0.8}
+                        className="bg-primary/10 border border-primary/20 rounded-3xl p-5 mb-5 flex-row items-center justify-between shadow-sm"
+                    >
+                        <View className="flex-row items-center">
+                            <View className="w-10 h-10 rounded-full bg-primary/20 items-center justify-center mr-4">
+                                <FontAwesome5 name="chart-line" size={16} color="#0ea5e9" />
+                            </View>
+                            <View>
+                                <Text className="text-white font-bold text-lg">View Insights</Text>
+                                <Text className="text-primary/80 font-medium text-xs uppercase tracking-wider mt-0.5">Progress & Analytics</Text>
+                            </View>
+                        </View>
+                        <FontAwesome5 name="chevron-right" size={14} color="#0ea5e9" />
+                    </HapticButton>
 
                     {/* Contextual Premium Prompt */}
                     {!isPremium && workouts.length >= 2 && (

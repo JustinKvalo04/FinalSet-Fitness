@@ -129,39 +129,60 @@ export default function ProfileScreen() {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) throw new Error("Authentication error. Please log in again.");
 
-                // Convert file URI to Blob reliably
+                // Convert formally via native Expo 50+ fetch().blob() 
+                console.log("Avatar Debug: Converting file URI to blob:", asset.uri);
                 const res = await fetch(asset.uri);
-                if (!res.ok) throw new Error("Failed to process selected image.");
                 const blob = await res.blob();
+                console.log("Avatar Debug: Blob created successfully. Size:", blob.size);
+
+                console.log("Avatar Debug: Transcribing blob to ArrayBuffer to bypass RN stringification...");
+                const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result as ArrayBuffer);
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(blob);
+                });
 
                 const ext = asset.uri.substring(asset.uri.lastIndexOf('.') + 1) || 'jpeg';
                 const fileName = `${Date.now()}.${ext === 'jpg' ? 'jpeg' : ext}`;
                 const filePath = `${user.id}/${fileName}`;
+                console.log("Avatar Debug: Attempting to upload to Supabase path:", filePath);
 
                 const { error: uploadError } = await supabase.storage
                     .from('avatars')
-                    .upload(filePath, blob, {
+                    .upload(filePath, arrayBuffer, {
                         contentType: asset.mimeType || 'image/jpeg',
                         upsert: true
                     });
 
-                if (uploadError) throw uploadError;
+                if (uploadError) {
+                    console.error("Avatar Debug: Upload Failed!", uploadError);
+                    throw uploadError;
+                }
 
                 const { data: publicUrlData } = supabase.storage
                     .from('avatars')
                     .getPublicUrl(filePath);
 
-                const publicUrl = publicUrlData.publicUrl;
+                // Append Cache Buster to force RN <Image> re-render immediately
+                const publicUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+                console.log("Avatar Debug: Generated Public URL:", publicUrl);
 
+                console.log("Avatar Debug: Updating database profiles.avatar_url...");
                 const { error: updateError } = await supabase.from('profiles')
                     .update({ avatar_url: publicUrl })
                     .eq('id', user.id);
 
-                if (updateError) throw updateError;
+                if (updateError) {
+                    console.error("Avatar Debug: Profile DB Update Failed!", updateError);
+                    throw updateError;
+                }
 
+                console.log("Avatar Debug: Avatar update pipeline 100% complete!");
                 setProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }));
             }
         } catch (error: any) {
+            console.error("Avatar Debug: Fatal exception caught:", error);
             Alert.alert("Error saving photo", error.message || "An unexpected error occurred.");
         } finally {
             setUploading(false);

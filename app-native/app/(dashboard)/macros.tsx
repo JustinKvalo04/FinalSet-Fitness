@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { KeyboardAwareInput } from '../../components/KeyboardDoneView';
+import { StatInput } from '../../components/StatInput';
 import { HapticButton } from '../../components/HapticButton';
 import { KeyboardFormWrapper } from '../../components/KeyboardFormWrapper';
 
@@ -52,8 +53,17 @@ export default function MacrosWizard() {
                 if (profile) {
                     setIsPremium(profile.subscription_status === 'active');
 
-                    // Pre-fill Step 1 Data
-                    if (profile.target_weight) setWeight(profile.target_weight.toString());
+                    // Fetch current bodyweight from weight_logs instead of target_weight
+                    const { data: weightData } = await supabase.from('weight_logs')
+                        .select('weight')
+                        .eq('user_id', user.id)
+                        .order('logged_date', { ascending: false })
+                        .limit(1);
+
+                    if (weightData && weightData.length > 0) {
+                        setWeight(weightData[0].weight.toString());
+                    }
+
                     if (profile.height) {
                         const totalInches = profile.height;
                         setHeightFt(Math.floor(totalInches / 12).toString());
@@ -131,12 +141,13 @@ export default function MacrosWizard() {
             const totalHeightInches = (parseInt(heightFt) || 0) * 12 + (parseInt(heightIn) || 0);
 
             // Update profile with the confirmation data and macro targets
+            // IMPORTANT: Do NOT touch target_weight here. That is explicitly managed in goals.tsx.
             const { error: profileError } = await supabase.from('profiles').update({
-                target_weight: parseFloat(weight) || null,
                 height: totalHeightInches || null,
                 sex: sex,
                 activity_level: activityLevel,
                 primary_goal: goal,
+                goal_achieved_acknowledged: false,
                 protein_target: macros.protein,
                 carbs_target: macros.carbs,
                 fat_target: macros.fats,
@@ -181,6 +192,21 @@ export default function MacrosWizard() {
 
                 {renderProgressBar()}
 
+                {/* Upsell Banner for Free Users */}
+                {!isPremium && (
+                    <HapticButton
+                        hapticType="light"
+                        onPress={() => router.push('/(dashboard)/paywall')}
+                        className="bg-[#0A84FF] border border-[#0A84FF] rounded-2xl p-4 mb-6 flex-row items-center justify-between"
+                    >
+                        <View className="flex-1 mr-3 flex-row items-center">
+                            <FontAwesome5 name="unlock" size={14} color="#FFFFFF" className="mr-3" />
+                            <Text className="text-white font-medium text-sm flex-1 leading-tight">Unlock adaptive macros & weekly nutrition insights</Text>
+                        </View>
+                        <FontAwesome5 name="chevron-right" size={12} color="#FFFFFF" />
+                    </HapticButton>
+                )}
+
                 {/* --- Step 1: Confirm Body Data --- */}
                 {step === 1 && (
                     <View className="flex-1 animation-fade-in">
@@ -191,43 +217,30 @@ export default function MacrosWizard() {
                             <View className="flex-row gap-4">
                                 <View className="flex-1">
                                     <Text className="text-zinc-500 text-sm mb-1 ml-1">Weight (lbs)</Text>
-                                    <KeyboardAwareInput
+                                    <StatInput
                                         value={weight}
                                         onChangeText={setWeight}
-                                        keyboardType="numeric"
                                         placeholder="175"
-                                        placeholderTextColor="#52525b"
-                                        className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-4 text-white font-medium text-lg"
                                     />
                                 </View>
                                 <View className="flex-[1.5] flex-row gap-2">
                                     <View className="flex-1">
                                         <Text className="text-zinc-500 text-sm mb-1 ml-1">Feet</Text>
-                                        <View className="flex-row items-center bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-4">
-                                            <KeyboardAwareInput
-                                                value={heightFt}
-                                                onChangeText={setHeightFt}
-                                                keyboardType="numeric"
-                                                placeholder="5"
-                                                placeholderTextColor="#52525b"
-                                                className="flex-1 text-white font-medium text-lg"
-                                            />
-                                            <Text className="text-zinc-500 font-bold ml-1">ft</Text>
-                                        </View>
+                                        <StatInput
+                                            value={heightFt}
+                                            onChangeText={setHeightFt}
+                                            placeholder="5"
+                                            suffix="ft"
+                                        />
                                     </View>
                                     <View className="flex-1">
                                         <Text className="text-zinc-500 text-sm mb-1 ml-1">Inches</Text>
-                                        <View className="flex-row items-center bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-4">
-                                            <KeyboardAwareInput
-                                                value={heightIn}
-                                                onChangeText={setHeightIn}
-                                                keyboardType="numeric"
-                                                placeholder="10"
-                                                placeholderTextColor="#52525b"
-                                                className="flex-1 text-white font-medium text-lg"
-                                            />
-                                            <Text className="text-zinc-500 font-bold ml-1">in</Text>
-                                        </View>
+                                        <StatInput
+                                            value={heightIn}
+                                            onChangeText={setHeightIn}
+                                            placeholder="10"
+                                            suffix="in"
+                                        />
                                     </View>
                                 </View>
                             </View>
@@ -246,13 +259,10 @@ export default function MacrosWizard() {
                                 </View>
                                 <View className="flex-1">
                                     <Text className="text-zinc-500 text-sm mb-1 ml-1">Age</Text>
-                                    <KeyboardAwareInput
+                                    <StatInput
                                         value={age}
                                         onChangeText={setAge}
-                                        keyboardType="numeric"
                                         placeholder="30"
-                                        placeholderTextColor="#52525b"
-                                        className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-4 text-white font-medium text-lg"
                                     />
                                 </View>
                             </View>

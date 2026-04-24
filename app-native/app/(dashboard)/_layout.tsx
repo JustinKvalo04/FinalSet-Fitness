@@ -96,6 +96,8 @@ export default function DashboardLayout() {
                 <Tabs.Screen name="macros" options={{ href: null }} />
                 <Tabs.Screen name="log-meal" options={{ href: null }} />
                 <Tabs.Screen name="schedule" options={{ href: null }} />
+                <Tabs.Screen name="edit-workout" options={{ href: null }} />
+                <Tabs.Screen name="progress" options={{ href: null }} />
             </Tabs>
 
             {/* Quick Action Modal */}

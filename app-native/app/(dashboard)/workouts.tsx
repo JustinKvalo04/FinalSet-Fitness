@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, Platform, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, Platform, Image, Modal, Pressable } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { WORKOUT_SPLITS, WorkoutSplit, WorkoutDayTemplate } from '../../lib/workoutTemplates';
+import { WORKOUT_SPLITS, WorkoutSplit, WorkoutDayTemplate, resolveWorkoutDay, CustomWorkoutOverrides } from '../../lib/workoutTemplates';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { KeyboardAwareInput } from '../../components/KeyboardDoneView';
 import { HapticButton } from '../../components/HapticButton';
 import * as Haptics from 'expo-haptics';
 import { getExerciseImage } from '../../lib/exerciseImages';
 import { resolveCanonicalExercise } from '../../lib/exercises';
 import { KeyboardFormWrapper } from '../../components/KeyboardFormWrapper';
+import { useUpsellFrequency } from '../../hooks/useUpsellFrequency';
 
 const ExerciseIcon = ({ name, target }: { name: string, target?: string }) => {
     const imageSource = getExerciseImage(name, target);
@@ -29,16 +30,20 @@ const ExerciseIcon = ({ name, target }: { name: string, target?: string }) => {
 
 export default function Workouts() {
     const router = useRouter();
+    const { canShowPostWorkoutCard, incrementPostWorkoutCount } = useUpsellFrequency();
     const [workouts, setWorkouts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('splits'); // 'splits', 'history'
     const [isPremium, setIsPremium] = useState(false);
+    const [showPremiumModal, setShowPremiumModal] = useState(false);
 
     // Navigation State
     const [persistedSplitId, setPersistedSplitId] = useState<string | null>(null);
     const [selectedSplit, setSelectedSplit] = useState<WorkoutSplit | null>(null);
     const [selectedDay, setSelectedDay] = useState<WorkoutDayTemplate | null>(null);
+    const [customOverrides, setCustomOverrides] = useState<CustomWorkoutOverrides | null>(null);
     const [isLogging, setIsLogging] = useState(false);
+    const [showDaySelectModal, setShowDaySelectModal] = useState(false);
 
     // Logging State
     const [exerciseLogs, setExerciseLogs] = useState<Record<string, { weight: string, reps: string }[]>>({});
@@ -50,18 +55,22 @@ export default function Workouts() {
 
     const inputRefs = useRef<Record<string, TextInput | null>>({});
 
-    useEffect(() => {
-        fetchWorkouts();
-    }, []);
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchWorkouts();
+        }, [])
+    );
 
     async function fetchWorkouts() {
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-            // Fetch profile for persisted split and premium status
-            const { data: profile } = await supabase.from('profiles').select('selected_program_split, subscription_status').eq('id', user.id).single();
+            const { data: profile } = await supabase.from('profiles').select('selected_program_split, subscription_status, custom_workout_overrides').eq('id', user.id).single();
             if (profile) {
                 setIsPremium(profile.subscription_status === 'active');
+                if (profile.custom_workout_overrides) {
+                    setCustomOverrides(profile.custom_workout_overrides as CustomWorkoutOverrides);
+                }
                 if (profile.selected_program_split) {
                     setPersistedSplitId(profile.selected_program_split);
                     const matchingSplit = WORKOUT_SPLITS.find(s => s.id === profile.selected_program_split);
@@ -117,9 +126,15 @@ export default function Workouts() {
 
     const handlePremiumAction = (actionName: string) => {
         if (!isPremium) {
-            router.push('/(dashboard)/paywall');
+            if (actionName === 'Edit Exercises' || actionName === 'Create Custom Program' || actionName === 'Edit Program') {
+                setShowPremiumModal(true);
+            } else {
+                router.push('/(dashboard)/paywall');
+            }
         } else {
-            Alert.alert("Premium Feature", `${actionName} is available for premium users. Custom editor coming soon!`);
+            if (actionName === 'Edit Program' || actionName === 'Create Custom Program') {
+                setShowDaySelectModal(true);
+            }
         }
     };
 
@@ -284,6 +299,7 @@ export default function Workouts() {
             setActiveTab('history');
             fetchWorkouts();
             setSubmitting(false);
+            if (!isPremium) incrementPostWorkoutCount();
         }, 1500);
     };
 
@@ -323,45 +339,63 @@ export default function Workouts() {
 
                 {/* --- History Tab --- */}
                 {activeTab === 'history' && !isLogging && (
-                    <View className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden mb-12">
-                        {workouts.length === 0 ? (
-                            <View className="px-6 py-12 items-center justify-center">
-                                <FontAwesome5 name="dumbbell" size={32} color="#3f3f46" className="mb-4" />
-                                <Text className="text-zinc-400 text-center font-medium">No workout logs yet</Text>
-                                <Text className="text-zinc-500 text-center text-sm mt-1">Start a program to see your history here.</Text>
-                            </View>
-                        ) : (
-                            workouts.map((w, i) => (
-                                <View
-                                    key={w.id}
-                                    className={`p-6 ${i !== workouts.length - 1 ? 'border-b border-zinc-800' : ''}`}
-                                >
-                                    <View className="flex-row justify-between items-start mb-3">
-                                        <View>
-                                            <Text className="text-white font-bold text-lg">{w.name}</Text>
-                                            <Text className="text-zinc-500 text-sm">
-                                                {w.logged_date ? new Date(w.logged_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '--'}
-                                            </Text>
-                                        </View>
-                                        {w.prs_broken > 0 && (
-                                            <View className="bg-amber-500/20 px-3 py-1 rounded-full border border-amber-500/30">
-                                                <Text className="text-amber-500 text-xs font-black tracking-wide uppercase">{w.prs_broken} PRs</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                    <View className="flex-row items-center mt-1 space-x-4">
-                                        <View className="flex-row items-center mr-4">
-                                            <FontAwesome5 name="clock" size={12} color="#a1a1aa" className="mr-1.5" />
-                                            <Text className="text-zinc-300 font-medium text-sm">{w.duration_minutes || '--'} min</Text>
-                                        </View>
-                                        <View className="flex-row items-center border-l border-zinc-700 pl-4">
-                                            <FontAwesome5 name="dumbbell" size={12} color="#a1a1aa" className="mr-1.5" />
-                                            <Text className="text-zinc-300 font-medium text-sm">{w.exercise_count || '--'} exercises</Text>
-                                        </View>
-                                    </View>
+                    <View className="mb-12">
+                        {!isPremium && canShowPostWorkoutCard && workouts.length > 0 && (
+                            <HapticButton
+                                hapticType="success"
+                                onPress={() => router.push('/(dashboard)/paywall')}
+                                className="bg-[#0A84FF] border border-[#0A84FF]/80 rounded-3xl p-5 mb-6 shadow-lg shadow-[#0A84FF]/20 flex-row items-center"
+                            >
+                                <View className="bg-white/20 w-12 h-12 rounded-full items-center justify-center mr-4">
+                                    <FontAwesome5 name="lightbulb" size={20} color="#FFFFFF" solid />
                                 </View>
-                            ))
+                                <View className="flex-1 mr-2">
+                                    <Text className="text-white font-bold text-lg mb-1">Want deeper insights?</Text>
+                                    <Text className="text-white/80 font-medium text-sm leading-tight">See strength trends, PR tracking, and progression data</Text>
+                                </View>
+                                <FontAwesome5 name="chevron-right" size={14} color="#FFFFFF" />
+                            </HapticButton>
                         )}
+                        <View className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
+                            {workouts.length === 0 ? (
+                                <View className="px-6 py-12 items-center justify-center">
+                                    <FontAwesome5 name="dumbbell" size={32} color="#3f3f46" className="mb-4" />
+                                    <Text className="text-zinc-400 text-center font-medium">No workout logs yet</Text>
+                                    <Text className="text-zinc-500 text-center text-sm mt-1">Start a program to see your history here.</Text>
+                                </View>
+                            ) : (
+                                workouts.map((w, i) => (
+                                    <View
+                                        key={w.id}
+                                        className={`p-6 ${i !== workouts.length - 1 ? 'border-b border-zinc-800' : ''}`}
+                                    >
+                                        <View className="flex-row justify-between items-start mb-3">
+                                            <View>
+                                                <Text className="text-white font-bold text-lg">{w.name}</Text>
+                                                <Text className="text-zinc-500 text-sm">
+                                                    {w.logged_date ? new Date(w.logged_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '--'}
+                                                </Text>
+                                            </View>
+                                            {w.prs_broken > 0 && (
+                                                <View className="bg-amber-500/20 px-3 py-1 rounded-full border border-amber-500/30">
+                                                    <Text className="text-amber-500 text-xs font-black tracking-wide uppercase">{w.prs_broken} PRs</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                        <View className="flex-row items-center mt-1 space-x-4">
+                                            <View className="flex-row items-center mr-4">
+                                                <FontAwesome5 name="clock" size={12} color="#a1a1aa" className="mr-1.5" />
+                                                <Text className="text-zinc-300 font-medium text-sm">{w.duration_minutes || '--'} min</Text>
+                                            </View>
+                                            <View className="flex-row items-center border-l border-zinc-700 pl-4">
+                                                <FontAwesome5 name="dumbbell" size={12} color="#a1a1aa" className="mr-1.5" />
+                                                <Text className="text-zinc-300 font-medium text-sm">{w.exercise_count || '--'} exercises</Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                ))
+                            )}
+                        </View>
                     </View>
                 )}
 
@@ -416,22 +450,25 @@ export default function Workouts() {
                         </View>
                         <Text className="text-zinc-400 mb-6">{selectedSplit.description}</Text>
 
-                        {selectedSplit.days.map((day) => (
-                            <HapticButton
-                                hapticType="light"
-                                key={day.id}
-                                onPress={() => setSelectedDay(day)}
-                                className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-4 flex-row items-center justify-between"
-                            >
-                                <View className="flex-1 mr-4">
-                                    <Text className="text-white font-bold text-xl mb-1">{day.name}</Text>
-                                    <Text className="text-zinc-500 text-sm">{day.target}</Text>
-                                </View>
-                                <View className="w-10 h-10 rounded-full bg-zinc-800 items-center justify-center">
-                                    <FontAwesome5 name="chevron-right" size={14} color="#a1a1aa" />
-                                </View>
-                            </HapticButton>
-                        ))}
+                        {selectedSplit.days.map((day) => {
+                            const resolvedDay = resolveWorkoutDay(day.id, day, customOverrides);
+                            return (
+                                <HapticButton
+                                    hapticType="light"
+                                    key={resolvedDay.id}
+                                    onPress={() => setSelectedDay(resolvedDay)}
+                                    className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-4 flex-row items-center justify-between"
+                                >
+                                    <View className="flex-1 mr-4">
+                                        <Text className="text-white font-bold text-xl mb-1">{resolvedDay.name}</Text>
+                                        <Text className="text-zinc-500 text-sm">{resolvedDay.target}</Text>
+                                    </View>
+                                    <View className="w-10 h-10 rounded-full bg-zinc-800 items-center justify-center">
+                                        <FontAwesome5 name="chevron-right" size={14} color="#a1a1aa" />
+                                    </View>
+                                </HapticButton>
+                            );
+                        })}
 
                         <HapticButton
                             hapticType="light"
@@ -460,7 +497,20 @@ export default function Workouts() {
 
                         <View className="flex-row justify-between items-start mb-1">
                             <Text className="text-3xl font-bold text-white max-w-[70%]">{selectedDay.name}</Text>
-                            <HapticButton hapticType="light" onPress={() => handlePremiumAction('Edit Exercises')} className="bg-zinc-800 px-3 py-1.5 rounded-lg border border-amber-500/20">
+                            <HapticButton
+                                hapticType="light"
+                                onPress={() => {
+                                    if (!isPremium) {
+                                        setShowPremiumModal(true);
+                                    } else {
+                                        router.push({
+                                            pathname: '/(dashboard)/edit-workout',
+                                            params: { splitId: selectedSplit.id, dayId: selectedDay.id }
+                                        });
+                                    }
+                                }}
+                                className="bg-zinc-800 px-3 py-1.5 rounded-lg border border-amber-500/20"
+                            >
                                 <Text className="text-amber-500 font-semibold text-xs">Edit Exercises</Text>
                             </HapticButton>
                         </View>
@@ -579,6 +629,99 @@ export default function Workouts() {
                 )}
 
             </KeyboardFormWrapper>
+
+            {/* Custom Edit Exercises Premium Paywall Modal */}
+            <Modal
+                visible={showPremiumModal}
+                transparent={true}
+                animationType="fade"
+            >
+                <View className="flex-1 justify-center items-center bg-black/80 px-6">
+                    <View className="bg-zinc-900 border border-zinc-700 w-full rounded-3xl p-6 items-center shadow-2xl shadow-primary/20">
+                        <View className="w-16 h-16 bg-primary/20 rounded-full items-center justify-center mb-4">
+                            <FontAwesome5 name="star" size={24} color="#0ea5e9" solid />
+                        </View>
+                        <Text className="text-2xl font-bold text-white mb-2 text-center tracking-tight">Customize Your Training</Text>
+                        <Text className="text-zinc-400 font-medium text-center text-sm mb-6 leading-relaxed">
+                            Build workouts exactly how you want.
+                        </Text>
+
+                        <View className="w-full space-y-4 mb-8 px-2">
+                            <View className="flex-row items-center">
+                                <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                                <Text className="text-zinc-300">Swap exercises</Text>
+                            </View>
+                            <View className="flex-row items-center">
+                                <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                                <Text className="text-zinc-300">Create custom workouts</Text>
+                            </View>
+                            <View className="flex-row items-center">
+                                <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                                <Text className="text-zinc-300">Build your own split</Text>
+                            </View>
+                            <View className="flex-row items-center">
+                                <FontAwesome5 name="check-circle" size={16} color="#0ea5e9" className="mr-3" />
+                                <Text className="text-zinc-300">Track advanced progression</Text>
+                            </View>
+                        </View>
+
+                        <View className="w-full space-y-3">
+                            <HapticButton
+                                hapticType="success"
+                                onPress={() => {
+                                    setShowPremiumModal(false);
+                                    router.push('/(dashboard)/paywall');
+                                }}
+                                className="bg-[#0A84FF] py-4 rounded-xl items-center w-full"
+                            >
+                                <Text className="text-white font-bold text-lg">Upgrade to Premium</Text>
+                            </HapticButton>
+
+                            <HapticButton
+                                hapticType="light"
+                                onPress={() => setShowPremiumModal(false)}
+                                className="py-4 items-center w-full"
+                            >
+                                <Text className="text-zinc-500 font-bold text-lg">Not now</Text>
+                            </HapticButton>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Day Selection Modal for Editing */}
+            <Modal
+                visible={showDaySelectModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowDaySelectModal(false)}
+            >
+                <Pressable onPress={() => setShowDaySelectModal(false)} className="flex-1 justify-end bg-black/80">
+                    <Pressable className="bg-zinc-900 rounded-t-3xl p-6 pb-12 w-full shadow-2xl">
+                        <View className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-6" />
+                        <Text className="text-2xl font-bold text-white mb-2 text-center">Edit Workout</Text>
+                        <Text className="text-zinc-400 font-medium text-center text-sm mb-6">Which day would you like to edit?</Text>
+
+                        {selectedSplit?.days.map((day) => (
+                            <HapticButton
+                                key={day.id}
+                                hapticType="light"
+                                onPress={() => {
+                                    setShowDaySelectModal(false);
+                                    router.push({
+                                        pathname: '/(dashboard)/edit-workout',
+                                        params: { splitId: selectedSplit.id, dayId: day.id }
+                                    });
+                                }}
+                                className="bg-zinc-800 py-4 px-5 rounded-xl flex-row items-center justify-between mb-3"
+                            >
+                                <Text className="text-white font-bold text-lg">{day.name}</Text>
+                                <FontAwesome5 name="pencil-alt" size={14} color="#a1a1aa" />
+                            </HapticButton>
+                        ))}
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </View>
     );
 }

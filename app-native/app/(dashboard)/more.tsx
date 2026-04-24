@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
@@ -11,6 +11,20 @@ import { WEB_BASE_URL } from '../../lib/config';
 export default function MoreScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const [isPremium, setIsPremium] = React.useState(false);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const checkPremium = async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data } = await supabase.from('profiles').select('subscription_status').eq('id', user.id).single();
+                    setIsPremium(data?.subscription_status === 'active');
+                }
+            };
+            checkPremium();
+        }, [])
+    );
 
     const handleLogout = async () => {
         Alert.alert(
@@ -59,6 +73,7 @@ export default function MoreScreen() {
             </View>
 
             <View className="bg-zinc-900 border-y border-zinc-800 mb-8 mt-4">
+                <LinkItem icon="chart-line" text="Progress & Analytics" onPress={() => router.push(isPremium ? '/(dashboard)/progress' : '/(dashboard)/paywall')} />
                 <LinkItem icon="crown" text="Manage Premium" onPress={() => router.push('/(dashboard)/paywall')} />
                 <LinkItem icon="user" text="Edit Profile" onPress={() => router.push('/(dashboard)/profile')} />
                 <LinkItem icon="bullseye" text="Goals" onPress={() => router.push('/(dashboard)/goals')} />
