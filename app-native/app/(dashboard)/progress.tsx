@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { HapticButton } from '../../components/HapticButton';
@@ -31,14 +31,14 @@ export default function ProgressScreen() {
 
     const fetchData = async () => {
         setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabaseClient().auth.getUser();
         if (!user) return;
 
         const [profileRes, weightRes, workoutRes, exerciseRes] = await Promise.all([
-            supabase.from('profiles').select('target_weight, weight, primary_goal').eq('id', user.id).single(),
-            supabase.from('weight_logs').select('weight, logged_date').eq('user_id', user.id).order('logged_date', { ascending: false }),
-            supabase.from('workout_logs').select('id, logged_date, prs_broken').eq('user_id', user.id).order('logged_date', { ascending: false }),
-            supabase.from('exercise_logs').select('id, exercise_id, max_weight, max_reps, is_pr, completed_at').eq('user_id', user.id).order('completed_at', { ascending: false })
+            getSupabaseClient().from('profiles').select('target_weight, weight, primary_goal').eq('id', user.id).single(),
+            getSupabaseClient().from('weight_logs').select('weight, logged_date').eq('user_id', user.id).order('logged_date', { ascending: false }),
+            getSupabaseClient().from('workout_logs').select('id, logged_date, prs_broken').eq('user_id', user.id).order('logged_date', { ascending: false }),
+            getSupabaseClient().from('exercise_logs').select('id, exercise_id, max_weight, max_reps, is_pr, completed_at').eq('user_id', user.id).order('completed_at', { ascending: false })
         ]);
 
         if (profileRes.data) setProfile(profileRes.data);

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, ActivityIndicator, Alert, Platform } from 'react-native';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { KeyboardFormWrapper } from '../../components/KeyboardFormWrapper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,7 +48,7 @@ export default function LogMeal() {
         }
 
         setSubmitting(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabaseClient().auth.getUser();
 
         if (user) {
             // Get local date string 'YYYY-MM-DD'
@@ -58,7 +58,7 @@ export default function LogMeal() {
             const day = String(today.getDate()).padStart(2, '0');
             const localDateStr = `${year}-${month}-${day}`;
 
-            const { error } = await supabase.from('meal_logs').insert({
+            const { error } = await getSupabaseClient().from('meal_logs').insert({
                 user_id: user.id,
                 date: localDateStr,
                 meal_type: selectedType,

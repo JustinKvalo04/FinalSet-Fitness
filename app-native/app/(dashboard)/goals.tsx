@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, Alert, Platform, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareInput } from '../../components/KeyboardDoneView';
 import { StatInput } from '../../components/StatInput';
@@ -30,16 +30,16 @@ export default function GoalsScreen() {
 
     const fetchData = async () => {
         setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabaseClient().auth.getUser();
         if (user) {
-            const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            const { data: profileData } = await getSupabaseClient().from('profiles').select('*').eq('id', user.id).single();
             if (profileData) {
                 setProfile(profileData);
                 setTargetWeight(profileData.target_weight ? profileData.target_weight.toString() : '');
                 if (profileData.primary_goal) setGoal(profileData.primary_goal as any);
             }
 
-            const { data: weightData } = await supabase.from('weight_logs')
+            const { data: weightData } = await getSupabaseClient().from('weight_logs')
                 .select('weight')
                 .eq('user_id', user.id)
                 .order('logged_date', { ascending: false })
@@ -123,7 +123,7 @@ export default function GoalsScreen() {
 
         try {
             console.log('[Goal Update] Fetching user session...');
-            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            const { data: { user }, error: userError } = await getSupabaseClient().auth.getUser();
 
             if (userError || !user) {
                 console.error('[Goal Update] User fetch failed:', userError);
@@ -140,7 +140,7 @@ export default function GoalsScreen() {
             };
 
             console.log('[Goal Update] Profile update start:', updates);
-            const { error: updateError } = await supabase.from('profiles').update(updates).eq('id', user.id);
+            const { error: updateError } = await getSupabaseClient().from('profiles').update(updates).eq('id', user.id);
 
             if (updateError) {
                 console.error('[Goal Update] Profile update failed:', updateError.message);

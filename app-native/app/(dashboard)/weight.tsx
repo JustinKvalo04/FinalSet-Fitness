@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, ActivityIndicator, Alert, Platform, Modal, TouchableOpacity } from 'react-native';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { KeyboardAwareInput } from '../../components/KeyboardDoneView';
@@ -23,11 +23,11 @@ export default function Weight() {
 
     async function fetchData() {
         setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabaseClient().auth.getUser();
         if (user) {
             const [profileRes, logsRes] = await Promise.all([
-                supabase.from('profiles').select('*').eq('id', user.id).single(),
-                supabase.from('weight_logs').select('*').eq('user_id', user.id).order('logged_date', { ascending: false }).limit(7)
+                getSupabaseClient().from('profiles').select('*').eq('id', user.id).single(),
+                getSupabaseClient().from('weight_logs').select('*').eq('user_id', user.id).order('logged_date', { ascending: false }).limit(7)
             ]);
             setProfile(profileRes.data);
             setWeightLogs(logsRes.data || []);
@@ -38,10 +38,10 @@ export default function Weight() {
     const handleLogWeight = async () => {
         if (!inputWeight) return;
         setSubmitting(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabaseClient().auth.getUser();
 
         if (user) {
-            const { error } = await supabase.from('weight_logs').upsert({
+            const { error } = await getSupabaseClient().from('weight_logs').upsert({
                 user_id: user.id,
                 weight: parseFloat(inputWeight),
                 logged_date: new Date().toISOString().split('T')[0]
@@ -61,7 +61,7 @@ export default function Weight() {
 
                     if (goalReached) {
                         setShowGoalModal(true);
-                        await supabase.from('profiles').update({ goal_achieved_acknowledged: true }).eq('id', user.id);
+                        await getSupabaseClient().from('profiles').update({ goal_achieved_acknowledged: true }).eq('id', user.id);
                     }
                 }
 
@@ -166,27 +166,7 @@ export default function Weight() {
                         )}
                     </View>
 
-                    {/* Advanced Analytics Upsell */}
-                    <HapticButton
-                        hapticType="light"
-                        onPress={() => {
-                            if (profile?.subscription_status !== 'active') {
-                                router.push('/(dashboard)/paywall');
-                            } else {
-                                Alert.alert('Premium Feature', 'Advanced weight trends and body comp predictions coming soon!');
-                            }
-                        }}
-                        className="mt-6 bg-zinc-900 border border-amber-500/30 rounded-2xl py-4 px-6 flex-row justify-between items-center"
-                    >
-                        <View className="flex-1 mr-4">
-                            <View className="flex-row items-center mb-1">
-                                <FontAwesome5 name="chart-line" size={14} color="#f59e0b" className="mr-2" />
-                                <Text className="text-amber-500 font-bold text-lg">Advanced Analytics</Text>
-                            </View>
-                            <Text className="text-zinc-400 text-sm">View weight trends, body comp predictions, and history insights.</Text>
-                        </View>
-                        <FontAwesome5 name="chevron-right" size={14} color="#a1a1aa" />
-                    </HapticButton>
+
                 </View>
             </KeyboardFormWrapper>
 

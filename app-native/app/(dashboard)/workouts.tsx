@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, Platform, Image, Modal, Pressable } from 'react-native';
-import { supabase } from '../../lib/supabase';
+import { View, Text, TextInput, ActivityIndicator, Alert, Platform, Image, Modal, Pressable } from 'react-native';
+import { getSupabaseClient } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { WORKOUT_SPLITS, WorkoutSplit, WorkoutDayTemplate, resolveWorkoutDay, CustomWorkoutOverrides } from '../../lib/workoutTemplates';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +11,6 @@ import * as Haptics from 'expo-haptics';
 import { getExerciseImage } from '../../lib/exerciseImages';
 import { resolveCanonicalExercise } from '../../lib/exercises';
 import { KeyboardFormWrapper } from '../../components/KeyboardFormWrapper';
-import { useUpsellFrequency } from '../../hooks/useUpsellFrequency';
 
 const ExerciseIcon = ({ name, target }: { name: string, target?: string }) => {
     const imageSource = getExerciseImage(name, target);
@@ -30,7 +29,6 @@ const ExerciseIcon = ({ name, target }: { name: string, target?: string }) => {
 
 export default function Workouts() {
     const router = useRouter();
-    const { canShowPostWorkoutCard, incrementPostWorkoutCount } = useUpsellFrequency();
     const [workouts, setWorkouts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('splits'); // 'splits', 'history'
@@ -63,6 +61,7 @@ export default function Workouts() {
 
     async function fetchWorkouts() {
         setLoading(true);
+        const supabase = getSupabaseClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             const { data: profile } = await supabase.from('profiles').select('selected_program_split, subscription_status, custom_workout_overrides').eq('id', user.id).single();
@@ -94,6 +93,7 @@ export default function Workouts() {
     const selectAndPersistSplit = async (split: WorkoutSplit) => {
         setPersistedSplitId(split.id);
         setSelectedSplit(split);
+        const supabase = getSupabaseClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             await supabase.from('profiles').update({ selected_program_split: split.id }).eq('id', user.id);
@@ -112,6 +112,7 @@ export default function Workouts() {
                         setPersistedSplitId(null);
                         setSelectedSplit(null);
                         setSelectedDay(null);
+                        const supabase = getSupabaseClient();
                         const { data: { user } } = await supabase.auth.getUser();
                         if (user) {
                             await supabase.from('profiles').update({ selected_program_split: null }).eq('id', user.id);
@@ -189,6 +190,7 @@ export default function Workouts() {
             durationMinutes = Math.max(1, Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 60000));
         }
 
+        const supabase = getSupabaseClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user || !selectedDay) {
             setSubmitting(false);
@@ -299,7 +301,6 @@ export default function Workouts() {
             setActiveTab('history');
             fetchWorkouts();
             setSubmitting(false);
-            if (!isPremium) incrementPostWorkoutCount();
         }, 1500);
     };
 
@@ -319,7 +320,7 @@ export default function Workouts() {
             >
                 {/* Header & Tabs only show when not actively logging */}
                 {!isLogging && (
-                    <View className="flex-row bg-zinc-900 border border-zinc-800 rounded-xl p-1 mb-6">
+                    <View className="flex-row bg-zinc-900 border border-zinc-800 rounded-xl p-1 mb-6 mt-4">
                         <HapticButton
                             hapticType="light"
                             onPress={() => setActiveTab('splits')}
@@ -340,22 +341,6 @@ export default function Workouts() {
                 {/* --- History Tab --- */}
                 {activeTab === 'history' && !isLogging && (
                     <View className="mb-12">
-                        {!isPremium && canShowPostWorkoutCard && workouts.length > 0 && (
-                            <HapticButton
-                                hapticType="success"
-                                onPress={() => router.push('/(dashboard)/paywall')}
-                                className="bg-[#0A84FF] border border-[#0A84FF]/80 rounded-3xl p-5 mb-6 shadow-lg shadow-[#0A84FF]/20 flex-row items-center"
-                            >
-                                <View className="bg-white/20 w-12 h-12 rounded-full items-center justify-center mr-4">
-                                    <FontAwesome5 name="lightbulb" size={20} color="#FFFFFF" solid />
-                                </View>
-                                <View className="flex-1 mr-2">
-                                    <Text className="text-white font-bold text-lg mb-1">Want deeper insights?</Text>
-                                    <Text className="text-white/80 font-medium text-sm leading-tight">See strength trends, PR tracking, and progression data</Text>
-                                </View>
-                                <FontAwesome5 name="chevron-right" size={14} color="#FFFFFF" />
-                            </HapticButton>
-                        )}
                         <View className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
                             {workouts.length === 0 ? (
                                 <View className="px-6 py-12 items-center justify-center">
@@ -474,7 +459,7 @@ export default function Workouts() {
                             hapticType="light"
                             onPress={() => {
                                 if (!isPremium) {
-                                    router.push('/(dashboard)/paywall');
+                                    setShowPremiumModal(true);
                                 } else {
                                     router.push('/(dashboard)/schedule');
                                 }
@@ -503,10 +488,7 @@ export default function Workouts() {
                                     if (!isPremium) {
                                         setShowPremiumModal(true);
                                     } else {
-                                        router.push({
-                                            pathname: '/(dashboard)/edit-workout',
-                                            params: { splitId: selectedSplit.id, dayId: selectedDay.id }
-                                        });
+                                        router.push(`/(dashboard)/edit-workout?splitId=${selectedSplit.id}&dayId=${selectedDay.id}`);
                                     }
                                 }}
                                 className="bg-zinc-800 px-3 py-1.5 rounded-lg border border-amber-500/20"
@@ -708,10 +690,7 @@ export default function Workouts() {
                                 hapticType="light"
                                 onPress={() => {
                                     setShowDaySelectModal(false);
-                                    router.push({
-                                        pathname: '/(dashboard)/edit-workout',
-                                        params: { splitId: selectedSplit.id, dayId: day.id }
-                                    });
+                                    router.push(`/(dashboard)/edit-workout?splitId=${selectedSplit?.id}&dayId=${day.id}`);
                                 }}
                                 className="bg-zinc-800 py-4 px-5 rounded-xl flex-row items-center justify-between mb-3"
                             >

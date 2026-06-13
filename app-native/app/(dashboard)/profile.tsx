@@ -3,7 +3,8 @@ import { View, Text, ScrollView, Modal, ActivityIndicator, Alert, TextInput, Pla
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
+import { decode } from 'base64-arraybuffer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardFormWrapper } from '../../components/KeyboardFormWrapper';
 import { KeyboardAwareInput } from '../../components/KeyboardDoneView';
@@ -48,9 +49,9 @@ export default function ProfileScreen() {
 
     const fetchData = async () => {
         setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabaseClient().auth.getUser();
         if (user) {
-            const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            const { data: profileData } = await getSupabaseClient().from('profiles').select('*').eq('id', user.id).single();
             if (profileData) {
                 setProfile(profileData);
                 setFullName(profileData.full_name || '');
@@ -75,7 +76,7 @@ export default function ProfileScreen() {
 
     const handleSave = async () => {
         setSaving(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabaseClient().auth.getUser();
 
         if (user) {
             let formattedDob = null;
@@ -97,7 +98,7 @@ export default function ProfileScreen() {
                 dob: formattedDob,
             };
 
-            const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+            const { error } = await getSupabaseClient().from('profiles').update(updates).eq('id', user.id);
             if (error) {
                 Alert.alert("Error updating profile", error.message);
             } else {
@@ -120,47 +121,39 @@ export default function ProfileScreen() {
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 0.5,
+                base64: true,
             });
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
                 setUploading(true);
                 const asset = result.assets[0];
 
-                const { data: { user } } = await supabase.auth.getUser();
+                const { data: { user } } = await getSupabaseClient().auth.getUser();
                 if (!user) throw new Error("Authentication error. Please log in again.");
 
-                // Convert formally via native Expo 50+ fetch().blob() 
-                console.log("Avatar Debug: Converting file URI to blob:", asset.uri);
-                const res = await fetch(asset.uri);
-                const blob = await res.blob();
-                console.log("Avatar Debug: Blob created successfully. Size:", blob.size);
-
-                console.log("Avatar Debug: Transcribing blob to ArrayBuffer to bypass RN stringification...");
-                const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result as ArrayBuffer);
-                    reader.onerror = reject;
-                    reader.readAsArrayBuffer(blob);
-                });
+                if (!asset.base64) {
+                    throw new Error("Could not extract image data. Please try another image.");
+                }
 
                 const ext = asset.uri.substring(asset.uri.lastIndexOf('.') + 1) || 'jpeg';
                 const fileName = `${Date.now()}.${ext === 'jpg' ? 'jpeg' : ext}`;
                 const filePath = `${user.id}/${fileName}`;
-                console.log("Avatar Debug: Attempting to upload to Supabase path:", filePath);
+                const contentType = asset.mimeType || 'image/jpeg';
+                console.log(`Avatar Debug: Uploading to bucket='avatars', path='${filePath}', type='${contentType}'`);
 
-                const { error: uploadError } = await supabase.storage
+                const { error: uploadError, data: uploadData } = await getSupabaseClient().storage
                     .from('avatars')
-                    .upload(filePath, arrayBuffer, {
-                        contentType: asset.mimeType || 'image/jpeg',
+                    .upload(filePath, decode(asset.base64), {
+                        contentType: contentType,
                         upsert: true
                     });
 
                 if (uploadError) {
-                    console.error("Avatar Debug: Upload Failed!", uploadError);
-                    throw uploadError;
+                    console.error("Avatar Debug: Upload Failed!", JSON.stringify(uploadError));
+                    throw new Error(`Supabase Error (${(uploadError as any).statusCode || '400'}): ${uploadError.message || 'Unknown Storage Error'}\nBucket: avatars\nPath: ${filePath}`);
                 }
 
-                const { data: publicUrlData } = supabase.storage
+                const { data: publicUrlData } = getSupabaseClient().storage
                     .from('avatars')
                     .getPublicUrl(filePath);
 
@@ -169,7 +162,7 @@ export default function ProfileScreen() {
                 console.log("Avatar Debug: Generated Public URL:", publicUrl);
 
                 console.log("Avatar Debug: Updating database profiles.avatar_url...");
-                const { error: updateError } = await supabase.from('profiles')
+                const { error: updateError } = await getSupabaseClient().from('profiles')
                     .update({ avatar_url: publicUrl })
                     .eq('id', user.id);
 

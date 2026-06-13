@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, Alert, Platform } from 'react-native';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { KeyboardAwareInput } from '../../components/KeyboardDoneView';
@@ -47,6 +47,7 @@ export default function MacrosWizard() {
     useEffect(() => {
         async function fetchProfileData() {
             setLoading(true);
+            const supabase = getSupabaseClient();
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
@@ -135,6 +136,7 @@ export default function MacrosWizard() {
 
     const handleSaveMacros = async () => {
         setSaving(true);
+        const supabase = getSupabaseClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             // Calculate final height scalar for saving back to profiles
@@ -196,7 +198,7 @@ export default function MacrosWizard() {
                 {!isPremium && (
                     <HapticButton
                         hapticType="light"
-                        onPress={() => router.push('/(dashboard)/paywall')}
+                        onPress={() => Alert.alert("Coming Soon", "Feature isolated for testing.")}
                         className="bg-[#0A84FF] border border-[#0A84FF] rounded-2xl p-4 mb-6 flex-row items-center justify-between"
                     >
                         <View className="flex-1 mr-3 flex-row items-center">
@@ -445,7 +447,7 @@ export default function MacrosWizard() {
                         {/* Freemium Upsell Re-added */}
                         {!isPremium && (
                             <HapticButton
-                                onPress={() => router.push('/(dashboard)/paywall')}
+                                onPress={() => Alert.alert("Coming Soon", "Feature isolated for testing.")}
                                 activeOpacity={0.8}
                                 className="mt-8 bg-zinc-900 border border-amber-500/30 rounded-3xl p-5 border-dashed flex-row items-center"
                             >

@@ -1,22 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, Alert, ScrollView, Linking, TouchableOpacity } from 'react-native';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { WEB_BASE_URL } from '../../lib/config';
 import { HapticButton } from '../../components/HapticButton';
-import {
-    initConnection,
-    endConnection,
-    fetchProducts,
-    requestPurchase,
-    purchaseUpdatedListener,
-    purchaseErrorListener,
-    finishTransaction,
-    type Purchase
-} from 'react-native-iap';
 
-const itemSkus = ['com.app.premium.monthly', 'com.app.premium.yearly'];
+const itemSkus = ['com.finalset.fitness.premium.monthly', 'com.finalset.fitness.premium.yearly'];
 
 export default function Paywall() {
     const [products, setProducts] = useState<any[]>([]);
@@ -25,81 +15,67 @@ export default function Paywall() {
     const router = useRouter();
 
     useEffect(() => {
-        let updateListener: any;
-        let errorListener: any;
-
-        const setupIAP = async () => {
+        const fetchOfferings = async () => {
             try {
-                await initConnection();
-                const availableSubscriptions = await fetchProducts({ skus: itemSkus, type: 'subs' });
-                setProducts(availableSubscriptions || []);
-            } catch (err) {
-                console.warn('IAP Init error:', err);
-            }
-
-            updateListener = purchaseUpdatedListener(async (purchase: Purchase) => {
-                const receipt = (purchase as any).transactionReceipt;
-                if (receipt) {
-                    try {
-                        await verifyReceiptWithBackend(receipt);
-                        await finishTransaction({ purchase, isConsumable: false });
-                        Alert.alert("Success", "Welcome to Premium!");
-                        router.back();
-                    } catch (error) {
-                        Alert.alert("Verification Failed", "There was an error verifying your purchase.");
-                    }
+                const Purchases = require('react-native-purchases').default;
+                const offerings = await Purchases.getOfferings();
+                if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
+                    setProducts(offerings.current.availablePackages);
                 }
-                setPurchasing(false);
-            });
-
-            errorListener = purchaseErrorListener((error: any) => {
-                console.warn('purchaseErrorListener', error);
-                Alert.alert("Purchase Error", error.message);
-                setPurchasing(false);
-            });
-
-            setLoading(false);
+            } catch (e) {
+                console.warn('Error fetching RevenueCat offerings:', e);
+            } finally {
+                setLoading(false);
+            }
         };
 
-        setupIAP();
-
-        return () => {
-            if (updateListener && updateListener.remove) updateListener.remove();
-            if (errorListener && errorListener.remove) errorListener.remove();
-            endConnection();
-        };
+        fetchOfferings();
     }, []);
 
-    const verifyReceiptWithBackend = async (receiptData: string) => {
+    const verifyReceiptWithBackend = async () => {
+        // Now handled by RevenueCat directly
+        const supabase = getSupabaseClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("No user found");
-
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
-        const response = await fetch(`${apiUrl}/api/apple/verify-receipt`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                receiptData,
-                userId: user.id,
-            }),
-        });
-
-        if (!response.ok) {
-            throw new Error("Failed to verify receipt on the server.");
-        }
-
-        const data = await response.json();
-        if (!data.success) {
-            throw new Error(data.message || "Invalid receipt");
+        if (user) {
+            // Optimistically update the user's profile locally
+            await supabase.from('profiles').update({ subscription_status: 'active' }).eq('id', user.id);
         }
     };
 
-    const handlePurchase = async (sku: string) => {
+    const handlePurchase = async (pkg: any) => {
         try {
             setPurchasing(true);
-            await requestPurchase({ request: { apple: { sku } }, type: 'subs' });
+            const Purchases = require('react-native-purchases').default;
+            const { customerInfo } = await Purchases.purchasePackage(pkg);
+            if (typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
+                await verifyReceiptWithBackend();
+                Alert.alert("Success", "Welcome to Premium!");
+                router.back();
+            }
         } catch (err: any) {
-            console.warn(err.code, err.message);
+            if (!err.userCancelled) {
+                Alert.alert("Purchase Error", err.message);
+            }
+        } finally {
+            setPurchasing(false);
+        }
+    };
+
+    const handleRestore = async () => {
+        try {
+            setPurchasing(true);
+            const Purchases = require('react-native-purchases').default;
+            const customerInfo = await Purchases.restorePurchases();
+            if (typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
+                await verifyReceiptWithBackend();
+                Alert.alert("Success", "Purchases successfully restored.");
+                router.back();
+            } else {
+                Alert.alert("Restore", "No active subscriptions found.");
+            }
+        } catch (err: any) {
+            Alert.alert("Restore Error", err.message);
+        } finally {
             setPurchasing(false);
         }
     };
@@ -215,27 +191,27 @@ export default function Paywall() {
                         </HapticButton>
                     </>
                 ) : (
-                    products.map((product) => {
-                        const isYearly = product.productId.includes('year');
+                    products.map((pkg: any) => {
+                        const isYearly = pkg.packageType === 'ANNUAL';
                         return (
                             <HapticButton
                                 hapticType={isYearly ? "success" : "light"}
-                                key={product.productId}
-                                onPress={() => handlePurchase(product.productId)}
+                                key={pkg.identifier}
+                                onPress={() => handlePurchase(pkg)}
                                 disabled={purchasing}
                                 className={isYearly ? "bg-[#0A84FF] border border-[#0A84FF]/50 shadow-lg shadow-[#0A84FF]/20 rounded-3xl p-6 flex-row justify-between items-center" : "bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex-row justify-between items-center"}
                             >
                                 <View>
-                                    <Text className={isYearly ? "text-white font-bold text-lg mb-1" : "text-white font-bold text-lg mb-1"}>{product.title}</Text>
+                                    <Text className={isYearly ? "text-white font-bold text-lg mb-1" : "text-white font-bold text-lg mb-1"}>{pkg.product.title}</Text>
                                     {isYearly && (
                                         <View className="bg-white/20 self-start px-2 py-1 rounded-md mb-1">
                                             <Text className="text-white text-xs font-bold uppercase">Best Value</Text>
                                         </View>
                                     )}
-                                    <Text className={isYearly ? "text-white/80 text-sm" : "text-zinc-400 text-sm"}>{product.description}</Text>
+                                    <Text className={isYearly ? "text-white/80 text-sm" : "text-zinc-400 text-sm"}>{pkg.product.description}</Text>
                                 </View>
                                 <View className="items-end">
-                                    <Text className={isYearly ? "text-white font-bold text-2xl" : "text-zinc-300 font-bold text-xl"}>{product.localizedPrice}</Text>
+                                    <Text className={isYearly ? "text-white font-bold text-2xl" : "text-zinc-300 font-bold text-xl"}>{pkg.product.priceString}</Text>
                                 </View>
                             </HapticButton>
                         );
@@ -265,6 +241,10 @@ export default function Paywall() {
                     </TouchableOpacity>
                 </View>
             </View>
+
+            <TouchableOpacity onPress={handleRestore} className="mt-4 mb-2 py-4">
+                <Text className="text-zinc-500 font-bold text-center underline">Restore Purchases</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
                 onPress={() => router.back()}

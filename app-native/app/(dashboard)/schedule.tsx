@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, Alert, TouchableOpacity, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WORKOUT_SPLITS, WorkoutSplit, WorkoutDayTemplate } from '../../lib/workoutTemplates';
 import { HapticButton } from '../../components/HapticButton';
@@ -43,10 +43,10 @@ export default function ScheduleEditor() {
 
     const fetchData = async () => {
         setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabaseClient().auth.getUser();
         if (user) {
             // 1. Fetch Profile (Premium + Split)
-            const { data: profile } = await supabase.from('profiles').select('subscription_status, selected_program_split').eq('id', user.id).single();
+            const { data: profile } = await getSupabaseClient().from('profiles').select('subscription_status, selected_program_split').eq('id', user.id).single();
 
             if (profile) {
                 const premiumActive = profile.subscription_status === 'active';
@@ -59,7 +59,7 @@ export default function ScheduleEditor() {
             }
 
             // 2. Fetch existing schedule from DB
-            const { data: scheduleData } = await supabase.from('program_schedule').select('*').eq('user_id', user.id);
+            const { data: scheduleData } = await getSupabaseClient().from('program_schedule').select('*').eq('user_id', user.id);
 
             const scheduleMap: Record<number, ScheduleEntry> = {};
 
@@ -91,7 +91,7 @@ export default function ScheduleEditor() {
         }
 
         setSaving(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabaseClient().auth.getUser();
 
         if (user) {
             // Prepare upsert payload
@@ -106,7 +106,7 @@ export default function ScheduleEditor() {
                 };
             });
 
-            const { error } = await supabase.from('program_schedule').upsert(payload, { onConflict: 'user_id,day_of_week' });
+            const { error } = await getSupabaseClient().from('program_schedule').upsert(payload, { onConflict: 'user_id,day_of_week' });
 
             if (error) {
                 console.error("Schedule Save Error: ", error);

@@ -1,16 +1,56 @@
 import React, { useState, useEffect } from 'react';
+import { View, Text, Modal, Pressable, Platform } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { View, Text, Modal, Pressable, Alert } from 'react-native';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
-import { supabase } from '../../lib/supabase';
-import { HapticButton } from '../../components/HapticButton';
 import * as Haptics from 'expo-haptics';
+import { HapticButton } from '../../components/HapticButton';
+import { getSupabaseClient } from '../../lib/supabase';
 
 export default function DashboardLayout() {
-    const router = useRouter();
     const insets = useSafeAreaInsets();
+    const router = useRouter();
     const [actionMenuVisible, setActionMenuVisible] = useState(false);
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+    useEffect(() => {
+        const initRevenueCat = async () => {
+            try {
+                const Purchases = require('react-native-purchases').default;
+                if (Platform.OS === 'ios') {
+                    // Lazy configure to prevent launch crashes
+                    Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY || 'appl_dummy_key' });
+                }
+            } catch (err) {
+                console.warn('RevenueCat init error:', err);
+            }
+        };
+        initRevenueCat();
+
+        // Auth guard to prevent unauthenticated access to the dashboard
+        const checkAuth = async () => {
+            const { data: { session } } = await getSupabaseClient().auth.getSession();
+            if (!session || !session.user || !session.user.id) {
+                router.replace('/');
+            } else {
+                setIsCheckingAuth(false);
+            }
+        };
+        checkAuth();
+
+        const { data: { subscription } } = getSupabaseClient().auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT' || !session || !session.user || !session.user.id) {
+                router.replace('/');
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    if (isCheckingAuth) {
+        return <View style={{ flex: 1, backgroundColor: '#09090b' }} />;
+    }
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#09090b' }} edges={['top']}>
             <Tabs
@@ -73,7 +113,7 @@ export default function DashboardLayout() {
                 />
 
                 <Tabs.Screen
-                    name="daily-macros"
+                    name="macros"
                     options={{
                         title: 'Macros',
                         tabBarIcon: ({ color }) => <FontAwesome5 name="calculator" size={20} color={color} />,
@@ -93,7 +133,7 @@ export default function DashboardLayout() {
                 <Tabs.Screen name="paywall" options={{ href: null, headerShown: false }} />
                 <Tabs.Screen name="profile" options={{ href: null }} />
                 <Tabs.Screen name="goals" options={{ href: null }} />
-                <Tabs.Screen name="macros" options={{ href: null }} />
+                <Tabs.Screen name="daily-macros" options={{ href: null }} />
                 <Tabs.Screen name="log-meal" options={{ href: null }} />
                 <Tabs.Screen name="schedule" options={{ href: null }} />
                 <Tabs.Screen name="edit-workout" options={{ href: null }} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, Alert, ScrollView, Modal, TextInput, Image } from 'react-native';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { WORKOUT_SPLITS, ExerciseTemplate, resolveWorkoutDay, CustomWorkoutOverrides } from '../../lib/workoutTemplates';
 import { CANONICAL_EXERCISES } from '../../lib/exercises';
@@ -59,9 +59,9 @@ export default function EditWorkout() {
 
             setDayName(day.name);
 
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await getSupabaseClient().auth.getUser();
             if (user) {
-                const { data: profile } = await supabase.from('profiles').select('custom_workout_overrides, custom_exercises').eq('id', user.id).single();
+                const { data: profile } = await getSupabaseClient().from('profiles').select('custom_workout_overrides, custom_exercises').eq('id', user.id).single();
                 const overrides = profile?.custom_workout_overrides as CustomWorkoutOverrides || {};
                 setProfileOverrides(overrides);
                 setCustomExercises(profile?.custom_exercises || []);
@@ -112,7 +112,7 @@ export default function EditWorkout() {
     const handleCreateCustomExercise = async () => {
         if (!newExName.trim()) return;
         setSaving(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabaseClient().auth.getUser();
         if (user) {
             const newEx = {
                 id: 'custom-' + Date.now().toString(),
@@ -121,7 +121,7 @@ export default function EditWorkout() {
             };
             const updatedCustoms = [...customExercises, newEx];
 
-            await supabase.from('profiles').update({
+            await getSupabaseClient().from('profiles').update({
                 custom_exercises: updatedCustoms
             }).eq('id', user.id);
 
@@ -166,7 +166,7 @@ export default function EditWorkout() {
 
     const handleSave = async () => {
         setSaving(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getSupabaseClient().auth.getUser();
         if (user && params.dayId) {
 
             // Map our UI state (ExerciseTemplate) down to the storage format (ExerciseOverride)
@@ -182,7 +182,7 @@ export default function EditWorkout() {
                 [params.dayId]: storageArray
             };
 
-            const { error } = await supabase.from('profiles').update({
+            const { error } = await getSupabaseClient().from('profiles').update({
                 custom_workout_overrides: payload
             }).eq('id', user.id);
 
@@ -206,7 +206,7 @@ export default function EditWorkout() {
                     style: "destructive",
                     onPress: async () => {
                         setSaving(true);
-                        const { data: { user } } = await supabase.auth.getUser();
+                        const { data: { user } } = await getSupabaseClient().auth.getUser();
                         if (user && params.dayId) {
                             const newOverrides = { ...profileOverrides };
 
@@ -214,7 +214,7 @@ export default function EditWorkout() {
                                 delete newOverrides[params.dayId];
                             }
 
-                            await supabase.from('profiles').update({
+                            await getSupabaseClient().from('profiles').update({
                                 custom_workout_overrides: newOverrides
                             }).eq('id', user.id);
 

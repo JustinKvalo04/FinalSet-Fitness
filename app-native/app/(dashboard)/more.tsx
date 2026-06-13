@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, Alert, Modal, ActivityIndicator } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { supabase } from '../../lib/supabase';
+import { useRouter } from 'expo-router';
+import { getSupabaseClient } from '../../lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 import { HapticButton } from '../../components/HapticButton';
@@ -11,41 +12,54 @@ import { WEB_BASE_URL } from '../../lib/config';
 export default function MoreScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const [isPremium, setIsPremium] = React.useState(false);
 
-    useFocusEffect(
-        React.useCallback(() => {
-            const checkPremium = async () => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    const { data } = await supabase.from('profiles').select('subscription_status').eq('id', user.id).single();
-                    setIsPremium(data?.subscription_status === 'active');
-                }
-            };
-            checkPremium();
-        }, [])
-    );
-
-    const handleLogout = async () => {
+    const handleDeleteAccount = () => {
         Alert.alert(
-            "Log Out",
-            "Are you sure you want to log out?",
+            "Delete Account",
+            "Are you absolutely sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.",
             [
                 { text: "Cancel", style: "cancel" },
                 {
-                    text: "Log Out",
+                    text: "Delete My Account",
                     style: "destructive",
                     onPress: async () => {
-                        await supabase.auth.signOut();
-                        router.replace('/(auth)');
+                        const supabase = getSupabaseClient();
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                            // Call RPC to delete user completely
+                            await supabase.rpc('delete_user_account', { user_id_param: user.id });
+                            await supabase.auth.signOut();
+                            try {
+                                const keys = await AsyncStorage.getAllKeys();
+                                const sbKeys = keys.filter(k => k.startsWith('supabase') || k.startsWith('sb-') || k.includes('auth-token') || k.includes('session'));
+                                if (sbKeys.length > 0) {
+                                    await AsyncStorage.multiRemove(sbKeys);
+                                }
+                                const Purchases = require('react-native-purchases').default;
+                                await Purchases.logOut();
+                            } catch (e) {
+                                console.warn("RC Logout Warning", e);
+                            }
+                            router.dismissAll();
+                            router.replace('/');
+                        }
                     }
                 }
             ]
         );
     };
 
-    const openWebLink = (url: string) => {
-        Linking.openURL(url);
+    const openWebLink = async (url: string) => {
+        try {
+            const supported = await Linking.canOpenURL(url);
+            if (supported) {
+                await Linking.openURL(url);
+            } else {
+                Alert.alert("Error", "Could not open the link.");
+            }
+        } catch (err: any) {
+            Alert.alert("Error", err?.message || "An unexpected error occurred while trying to open the link.");
+        }
     };
 
     const LinkItem = ({ icon, text, onPress, danger = false }: { icon: string, text: string, onPress: () => void, danger?: boolean }) => (
@@ -65,19 +79,22 @@ export default function MoreScreen() {
     );
 
     return (
+        <View className="flex-1">
         <ScrollView className="flex-1 bg-zinc-950 pt-6" contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}>
 
             <View className="px-6 mb-4">
                 <Text className="text-3xl font-bold text-white mb-1">More</Text>
-                <Text className="text-zinc-400">Manage your subscription, settings, and account.</Text>
+                <Text className="text-zinc-400">Settings and Support.</Text>
             </View>
 
-            <View className="bg-zinc-900 border-y border-zinc-800 mb-8 mt-4">
-                <LinkItem icon="chart-line" text="Progress & Analytics" onPress={() => router.push(isPremium ? '/(dashboard)/progress' : '/(dashboard)/paywall')} />
-                <LinkItem icon="crown" text="Manage Premium" onPress={() => router.push('/(dashboard)/paywall')} />
-                <LinkItem icon="user" text="Edit Profile" onPress={() => router.push('/(dashboard)/profile')} />
-                <LinkItem icon="bullseye" text="Goals" onPress={() => router.push('/(dashboard)/goals')} />
-                <LinkItem icon="cog" text="Settings" onPress={() => router.push('/(dashboard)/settings')} />
+            <View className="px-6 mb-2 mt-4">
+                <Text className="text-zinc-500 font-bold uppercase text-xs tracking-wider">Account & Activity</Text>
+            </View>
+
+            <View className="bg-zinc-900 border-y border-zinc-800 mb-8">
+                <LinkItem icon="user" text="Profile & Settings" onPress={() => router.push('/(dashboard)/profile')} />
+                <LinkItem icon="weight" text="Weight Log" onPress={() => router.push('/(dashboard)/weight')} />
+                <LinkItem icon="star" text="Upgrade to Premium" onPress={() => router.push('/(dashboard)/paywall')} />
             </View>
 
             <View className="px-6 mb-2">
@@ -86,12 +103,16 @@ export default function MoreScreen() {
 
             <View className="bg-zinc-900 border-y border-zinc-800 mb-8">
                 <LinkItem icon="envelope" text="Contact Support" onPress={() => openWebLink('mailto:finalset.help@gmail.com')} />
-                <LinkItem icon="shield-alt" text="Privacy Policy" onPress={() => openWebLink(`${WEB_BASE_URL}/privacy`)} />
-                <LinkItem icon="file-contract" text="Terms of Service" onPress={() => openWebLink(`${WEB_BASE_URL}/terms`)} />
+                <LinkItem icon="shield-alt" text="Privacy Policy" onPress={() => openWebLink('https://finalset-fit.app/privacy')} />
+                <LinkItem icon="file-contract" text="Terms of Service" onPress={() => openWebLink('https://finalset-fit.app/terms')} />
+            </View>
+
+            <View className="px-6 mb-2">
+                <Text className="text-zinc-500 font-bold uppercase text-xs tracking-wider">Danger Zone</Text>
             </View>
 
             <View className="bg-zinc-900 border-y border-zinc-800">
-                <LinkItem icon="sign-out-alt" text="Log Out" onPress={handleLogout} danger />
+                <LinkItem icon="trash-alt" text="Delete Account" onPress={handleDeleteAccount} danger />
             </View>
 
             <View className="items-center mt-12 mb-6">
@@ -99,5 +120,6 @@ export default function MoreScreen() {
             </View>
 
         </ScrollView>
+        </View>
     );
 }

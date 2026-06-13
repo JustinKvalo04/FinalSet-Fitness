@@ -1,1 +1,1 @@
-export const WEB_BASE_URL = "https://finalset.app";
+export const WEB_BASE_URL = "https://finalset-fit.app";

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, Alert, TouchableOpacity, Image } from 'react-native';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { WORKOUT_SPLITS } from '../../lib/workoutTemplates';
@@ -24,8 +24,14 @@ export default function DashboardHome() {
         React.useCallback(() => {
             async function fetchData() {
                 setLoading(true);
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
+                try {
+                    const supabase = getSupabaseClient();
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user || !user.id) {
+                        router.replace('/');
+                        return;
+                    }
+                    
                     // Fetch profile
                     const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
                     setProfile(profileData);
@@ -33,37 +39,40 @@ export default function DashboardHome() {
                         setIsPremium(profileData.subscription_status === 'active');
                     }
 
-                    // Fetch latest weight and trend
-                    const { data: weightData } = await supabase.from('weight_logs').select('weight, logged_date').eq('user_id', user.id).order('logged_date', { ascending: false }).limit(4);
-                    if (weightData && weightData.length > 0) {
-                        setCurrentWeight(weightData[0].weight);
-                        setRecentWeightLogs(weightData);
-                        setRecentWeights([...weightData].reverse().map(w => w.weight));
-                    }
+                        // Fetch latest weight and trend
+                        const { data: weightData } = await supabase.from('weight_logs').select('weight, logged_date').eq('user_id', user.id).order('logged_date', { ascending: false }).limit(4);
+                        if (weightData && weightData.length > 0) {
+                            setCurrentWeight(weightData[0].weight);
+                            setRecentWeightLogs(weightData);
+                            setRecentWeights([...weightData].reverse().map(w => w.weight));
+                        }
 
-                    // Fetch workout history
-                    const { data: history } = await supabase.from('workout_logs').select('*').eq('user_id', user.id).order('logged_date', { ascending: false });
-                    setWorkouts(history || []);
+                        // Fetch workout history
+                        const { data: history } = await supabase.from('workout_logs').select('*').eq('user_id', user.id).order('logged_date', { ascending: false });
+                        setWorkouts(history || []);
 
-                    // Fetch today's meals
-                    const today = new Date();
-                    const year = today.getFullYear();
-                    const month = String(today.getMonth() + 1).padStart(2, '0');
-                    const day = String(today.getDate()).padStart(2, '0');
-                    const localDateStr = `${year}-${month}-${day}`;
+                        // Fetch today's meals
+                        const today = new Date();
+                        const year = today.getFullYear();
+                        const month = String(today.getMonth() + 1).padStart(2, '0');
+                        const day = String(today.getDate()).padStart(2, '0');
+                        const localDateStr = `${year}-${month}-${day}`;
 
-                    const { data: meals } = await supabase.from('meal_logs')
-                        .select('*')
-                        .eq('user_id', user.id)
-                        .eq('date', localDateStr);
-                    setMealLogs(meals || []);
+                        const { data: meals } = await supabase.from('meal_logs')
+                            .select('*')
+                            .eq('user_id', user.id)
+                            .eq('date', localDateStr);
+                        setMealLogs(meals || []);
 
-                    const { data: scheduleData } = await supabase.from('program_schedule')
-                        .select('*')
-                        .eq('user_id', user.id);
-                    setCustomSchedule(scheduleData || []);
+                        const { data: scheduleData } = await supabase.from('program_schedule')
+                            .select('*')
+                            .eq('user_id', user.id);
+                        setCustomSchedule(scheduleData || []);
+                } catch (e) {
+                    console.error("Dashboard fetch error:", e);
+                } finally {
+                    setLoading(false);
                 }
-                setLoading(false);
             }
             fetchData();
         }, []));
@@ -236,8 +245,8 @@ export default function DashboardHome() {
                 stickyHeaderIndices={!isPremium ? [1] : []}
             >
                 {/* 0. Scrollable App Title */}
-                <View className="bg-[#09090b] pt-4">
-                    <View className="flex-row items-center justify-between px-6 pb-5 relative">
+                <View className="bg-[#09090b]" style={{ paddingTop: Math.max(insets.top + 4, 28) }}>
+                    <View className="flex-row items-center justify-between px-6 pb-5 relative mt-2">
                         <HapticButton
                             hapticType="light"
                             onPress={() => router.push('/(dashboard)/profile')}
@@ -365,13 +374,7 @@ export default function DashboardHome() {
                     {/* Progress & Analytics Button */}
                     <HapticButton
                         hapticType="light"
-                        onPress={() => {
-                            if (!isPremium) {
-                                router.push('/(dashboard)/paywall');
-                            } else {
-                                router.push('/(dashboard)/progress');
-                            }
-                        }}
+                        onPress={() => router.push('/(dashboard)/progress')}
                         activeOpacity={0.8}
                         className="bg-primary/10 border border-primary/20 rounded-3xl p-5 mb-5 flex-row items-center justify-between shadow-sm"
                     >
@@ -468,7 +471,7 @@ export default function DashboardHome() {
                     {/* Today's Macros Widget */}
                     <HapticButton
                         hapticType="light"
-                        onPress={() => router.push('/(dashboard)/daily-macros')}
+                        onPress={() => router.push('/(dashboard)/macros')}
                         activeOpacity={0.8}
                         className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8 shadow-sm"
                     >

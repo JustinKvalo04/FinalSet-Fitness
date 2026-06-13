@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
-import { supabase } from '../../lib/supabase';
+import { getSupabaseClient } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { HapticButton } from '../../components/HapticButton';
@@ -17,9 +17,9 @@ export default function DailyMacros() {
         React.useCallback(() => {
             async function fetchData() {
                 setLoading(true);
-                const { data: { user } } = await supabase.auth.getUser();
+                const { data: { user } } = await getSupabaseClient().auth.getUser();
                 if (user) {
-                    const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+                    const { data: profileData } = await getSupabaseClient().from('profiles').select('*').eq('id', user.id).single();
                     setProfile(profileData);
 
                     // Fetch today's meals
@@ -29,7 +29,7 @@ export default function DailyMacros() {
                     const day = String(today.getDate()).padStart(2, '0');
                     const localDateStr = `${year}-${month}-${day}`;
 
-                    const { data: meals } = await supabase.from('meal_logs')
+                    const { data: meals } = await getSupabaseClient().from('meal_logs')
                         .select('*')
                         .eq('user_id', user.id)
                         .eq('date', localDateStr)
