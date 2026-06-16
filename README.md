@@ -1,50 +1,155 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FinalSet Fitness
 
-## Getting Started
+FinalSet Fitness is a bodybuilding-focused fitness application designed for serious lifters who want to track workouts, nutrition, body weight, goals, and long-term progress in one place.
 
-### Quick Setup
-1. Copy the `.env.example` file to `.env.local`:
-   ```bash
-   cp .env.example .env.local
-   ```
-2. Fill in your actual variable values in `.env.local` (e.g., Supabase URLs, Stripe keys). *Do not commit this file to version control.*
-3. For deployment (Vercel, EAS), make sure to configure these identical environment variables in their respective dashboards.
-4. To create a clean submission zip without bulky dependencies or secrets, run:
-   ```bash
-   npm run zip:clean
-   ```
+The project includes both a web platform and native mobile app experience, with user authentication, database-backed tracking features, and premium subscription functionality.
 
-### Running the App
+## Overview
 
-First, run the development server for the web app:
+Most fitness apps are built for general fitness users. FinalSet Fitness is designed specifically for lifters focused on hypertrophy, consistency, and measurable progress.
+
+Core features include:
+
+* Workout tracking
+* Exercise logging
+* Macro tracking
+* Weight logging
+* Goal tracking
+* Progress monitoring
+* Premium subscription features
+* User authentication
+* Database-backed user data
+
+## Tech Stack
+
+**Frontend / Web**
+
+* Next.js
+* TypeScript
+* React
+* Tailwind CSS
+
+**Mobile**
+
+* React Native
+* Expo
+* Expo Router
+
+**Backend / Database**
+
+* Supabase
+* PostgreSQL
+* Row Level Security
+
+**Payments / Subscriptions**
+
+* RevenueCat
+* Apple In-App Purchases
+
+**Deployment**
+
+* Vercel
+* EAS Build
+* Apple App Store Connect
+
+## My Role
+
+I designed and developed FinalSet Fitness from concept to App Store submission.
+
+My responsibilities included:
+
+* Product strategy
+* UX design
+* Database architecture
+* Authentication setup
+* Workout tracking logic
+* Macro and weight tracking systems
+* Premium feature planning
+* Mobile app development
+* Web landing page development
+* App Store submission preparation
+
+## Key Features
+
+### Workout Tracking
+
+Users can log workouts, track exercises, record sets and reps, and monitor training consistency over time.
+
+### Macro Tracking
+
+Users can set nutrition targets and log daily intake to support muscle gain, fat loss, or maintenance goals.
+
+### Weight Tracking
+
+Users can record body weight and monitor trends toward their target weight.
+
+### Goal Management
+
+Users can define physique and performance goals and track progress inside the app.
+
+### Premium Features
+
+The app includes premium subscription functionality for advanced workout customization and future premium tools.
+
+## Project Structure
+
+```text
+FinalSet-Fitness/
+├── app-native/       # React Native / Expo mobile app
+├── src/              # Next.js web application
+├── supabase/         # Database and Supabase-related files
+├── public/           # Static assets
+├── app.json          # Expo app configuration
+├── eas.json          # EAS build configuration
+└── package.json      # Project dependencies and scripts
+```
+
+## Development Setup
+
+Clone the repository:
+
+```bash
+git clone https://github.com/JustinKvalo04/FinalSet-Fitness.git
+cd FinalSet-Fitness
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create a local environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+Add the required environment variables for Supabase, payments, and deployment services.
+
+Run the web app locally:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Status
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+FinalSet Fitness has been prepared for App Store submission and production deployment.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## What I Learned
 
-## Learn More
+This project strengthened my experience in:
 
-To learn more about Next.js, take a look at the following resources:
+* Building full-stack applications
+* Designing database schemas
+* Managing user authentication
+* Developing mobile apps with React Native and Expo
+* Connecting product strategy with technical implementation
+* Preparing a real application for production release
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Author
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Justin Kvalo
+Information Science Student, University of Wisconsin–Madison
+Email: [justinkvalo@gmail.com](mailto:justinkvalo@gmail.com)
