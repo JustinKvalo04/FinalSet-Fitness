@@ -7,7 +7,7 @@ import { FadeIn } from '@/components/FadeIn';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ArrowRight, Zap, Trophy, TrendingUp } from 'lucide-react';
 
-export default function LandingPage() {
+export default function Design8() {
   const appStoreLink = "https://apps.apple.com/us/app/finalset-fitness/id6760131492";
 
   return (
