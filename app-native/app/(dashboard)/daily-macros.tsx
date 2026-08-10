@@ -5,6 +5,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { HapticButton } from '../../components/HapticButton';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NutritionCitations } from '../../components/NutritionCitations';
 
 export default function DailyMacros() {
     const router = useRouter();
@@ -180,6 +181,8 @@ export default function DailyMacros() {
                     </View>
                 )}
             </View>
+
+            <NutritionCitations />
         </ScrollView>
     );
 }

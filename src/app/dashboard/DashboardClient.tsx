@@ -18,7 +18,7 @@ export default function DashboardClient({ profile, initialWeights, initialWorkou
     // Calculate trend from last week (if available)
     const today = new Date();
     const lastWeekDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const lastWeekWeightLog = initialWeights.find(w => new Date(w.date) <= lastWeekDate);
+    const lastWeekWeightLog = initialWeights.find(w => new Date(w.logged_date) <= lastWeekDate);
     const trendAmount = lastWeekWeightLog ? (currentWeight - lastWeekWeightLog.weight).toFixed(1) : "0.0";
     const trendDirection = Number(trendAmount) > 0 ? '↑' : Number(trendAmount) < 0 ? '↓' : '';
 

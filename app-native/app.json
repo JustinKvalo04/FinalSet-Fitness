@@ -2,7 +2,7 @@
   "expo": {
     "name": "FinalSet Fitness",
     "slug": "app-native",
-    "version": "1.0.0",
+    "version": "1.01",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "finalset",
@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.justinkvalo.finalset",
+      "buildNumber": "63",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSAppTransportSecurity": {
@@ -48,7 +49,13 @@
         }
       ],
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "FinalSet Fitness uses your photo library so you can select and upload a profile picture for your account."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

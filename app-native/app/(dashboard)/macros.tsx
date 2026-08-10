@@ -7,6 +7,7 @@ import { KeyboardAwareInput } from '../../components/KeyboardDoneView';
 import { StatInput } from '../../components/StatInput';
 import { HapticButton } from '../../components/HapticButton';
 import { KeyboardFormWrapper } from '../../components/KeyboardFormWrapper';
+import { NutritionCitations } from '../../components/NutritionCitations';
 
 export default function MacrosWizard() {
     const router = useRouter();
@@ -43,6 +44,9 @@ export default function MacrosWizard() {
 
     // Step 5: Results
     const [macros, setMacros] = useState({ calories: 0, protein: 0, carbs: 0, fats: 0 });
+
+    // Today's Intake (from meal_logs)
+    const [mealLogs, setMealLogs] = useState<any[]>([]);
 
     useEffect(() => {
         async function fetchProfileData() {
@@ -85,7 +89,31 @@ export default function MacrosWizard() {
                     if (profile.primary_goal) {
                         setGoal(profile.primary_goal as 'lose_fat' | 'build_muscle' | 'recomp' | 'maintain');
                     }
+
+                    // Auto-skip to Step 5 (Dashboard mode) if targets already exist
+                    if (profile.calories_target && params.reset !== 'true') {
+                        setMacros({
+                            calories: profile.calories_target,
+                            protein: profile.protein_target,
+                            carbs: profile.carbs_target,
+                            fats: profile.fat_target
+                        });
+                        setStep(5);
+                    }
                 }
+
+                // Fetch today's meals for Intake tracking
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const localDateStr = `${year}-${month}-${day}`;
+
+                const { data: meals } = await supabase.from('meal_logs')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('date', localDateStr);
+                setMealLogs(meals || []);
             }
             setLoading(false);
         }
@@ -399,8 +427,89 @@ export default function MacrosWizard() {
                 {/* --- Step 5: Macros Results --- */}
                 {step === 5 && (
                     <View className="flex-1 pb-10 animation-fade-in">
-                        <Text className="text-3xl font-bold text-white mb-2 tracking-tight">Your Target</Text>
-                        <Text className="text-zinc-400 mb-8">Based on your {goal.replace('_', ' ')} goal and {diet.replace('_', ' ')} diet.</Text>
+                        <Text className="text-3xl font-bold text-white mb-2 tracking-tight">Macros Dashboard</Text>
+                        <Text className="text-zinc-400 mb-8">Daily target based on your {goal.replace('_', ' ')} goal and {diet.replace('_', ' ')} diet.</Text>
+
+                        {/* --- Today's Intake Section --- */}
+                        {(() => {
+                            const targetCalories = macros.calories || 2450;
+                            const targetProtein = macros.protein || 180;
+                            const targetCarbs = macros.carbs || 250;
+                            const targetFats = macros.fats || 80;
+
+                            const consumedCalories = mealLogs.reduce((sum, meal) => sum + (meal.calories || 0), 0);
+                            const consumedProtein = mealLogs.reduce((sum, meal) => sum + (meal.protein || 0), 0);
+                            const consumedCarbs = mealLogs.reduce((sum, meal) => sum + (meal.carbs || 0), 0);
+                            const consumedFats = mealLogs.reduce((sum, meal) => sum + (meal.fat || 0), 0);
+
+                            const percentCalories = targetCalories > 0 ? Math.min(100, (consumedCalories / targetCalories) * 100) : 0;
+                            const percentProtein = targetProtein > 0 ? Math.min(100, (consumedProtein / targetProtein) * 100) : 0;
+                            const percentCarbs = targetCarbs > 0 ? Math.min(100, (consumedCarbs / targetCarbs) * 100) : 0;
+                            const percentFats = targetFats > 0 ? Math.min(100, (consumedFats / targetFats) * 100) : 0;
+
+                            const caloriesRemaining = Math.max(0, targetCalories - consumedCalories);
+
+                            return (
+                                <View className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 mb-8 shadow-sm">
+                                    <View className="flex-row items-center justify-between mb-6">
+                                        <View className="flex-row items-center">
+                                            <View className="w-8 h-8 rounded-full bg-orange-500/20 items-center justify-center mr-3">
+                                                <FontAwesome5 name="fire-alt" size={14} color="#f97316" />
+                                            </View>
+                                            <Text className="text-lg font-bold text-white">Today's Intake</Text>
+                                        </View>
+                                        <View className="items-end bg-orange-500/10 px-3 py-1.5 rounded-lg border border-orange-500/20">
+                                            <Text className="text-orange-500 font-bold text-base leading-tight">{caloriesRemaining}</Text>
+                                            <Text className="text-orange-500/70 text-[9px] uppercase font-bold tracking-wider">Kcal Left</Text>
+                                        </View>
+                                    </View>
+
+                                    {/* Calories Progress */}
+                                    <View className="mb-5">
+                                        <View className="flex-row justify-between mb-1.5">
+                                            <Text className="text-white font-bold">Calories</Text>
+                                            <Text className="text-zinc-400 font-medium text-xs"><Text className="text-white">{consumedCalories}</Text> / {targetCalories} kcal</Text>
+                                        </View>
+                                        <View className="h-2.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+                                            <View className="h-full bg-orange-500 rounded-full" style={{ width: `${percentCalories}%` }} />
+                                        </View>
+                                    </View>
+
+                                    {/* Protein Progress */}
+                                    <View className="mb-5">
+                                        <View className="flex-row justify-between mb-1.5">
+                                            <Text className="text-white font-bold">Protein</Text>
+                                            <Text className="text-zinc-400 font-medium text-xs"><Text className="text-white">{consumedProtein}</Text> / {targetProtein} g</Text>
+                                        </View>
+                                        <View className="h-2.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+                                            <View className="h-full bg-blue-500 rounded-full" style={{ width: `${percentProtein}%` }} />
+                                        </View>
+                                    </View>
+
+                                    {/* Carbs Progress */}
+                                    <View className="mb-5">
+                                        <View className="flex-row justify-between mb-1.5">
+                                            <Text className="text-white font-bold">Carbs</Text>
+                                            <Text className="text-zinc-400 font-medium text-xs"><Text className="text-white">{consumedCarbs}</Text> / {targetCarbs} g</Text>
+                                        </View>
+                                        <View className="h-2.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+                                            <View className="h-full bg-purple-500 rounded-full" style={{ width: `${percentCarbs}%` }} />
+                                        </View>
+                                    </View>
+
+                                    {/* Fats Progress */}
+                                    <View>
+                                        <View className="flex-row justify-between mb-1.5">
+                                            <Text className="text-white font-bold">Fats</Text>
+                                            <Text className="text-zinc-400 font-medium text-xs"><Text className="text-white">{consumedFats}</Text> / {targetFats} g</Text>
+                                        </View>
+                                        <View className="h-2.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+                                            <View className="h-full bg-yellow-500 rounded-full" style={{ width: `${percentFats}%` }} />
+                                        </View>
+                                    </View>
+                                </View>
+                            );
+                        })()}
 
                         {/* Large Result Card */}
                         <View className="bg-primary rounded-3xl p-6 mb-8 overflow-hidden relative shadow-lg shadow-primary/20">
@@ -443,6 +552,8 @@ export default function MacrosWizard() {
                                 )}
                             </HapticButton>
                         </View>
+
+                        <NutritionCitations />
 
                         {/* Freemium Upsell Re-added */}
                         {!isPremium && (

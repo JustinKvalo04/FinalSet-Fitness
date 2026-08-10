@@ -6,7 +6,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { WEB_BASE_URL } from '../../lib/config';
 import { HapticButton } from '../../components/HapticButton';
 
-const itemSkus = ['com.finalset.fitness.premium.monthly', 'com.finalset.fitness.premium.yearly'];
+const itemSkus = ['com.justinkvalo.finalset.monthly', 'com.justinkvalo.finalset.yearly'];
 
 export default function Paywall() {
     const [products, setProducts] = useState<any[]>([]);
@@ -19,8 +19,8 @@ export default function Paywall() {
             try {
                 const Purchases = require('react-native-purchases').default;
                 const offerings = await Purchases.getOfferings();
-                if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
-                    setProducts(offerings.current.availablePackages);
+                if (offerings.all && offerings.all['default'] && offerings.all['default'].availablePackages.length !== 0) {
+                    setProducts(offerings.all['default'].availablePackages);
                 }
             } catch (e) {
                 console.warn('Error fetching RevenueCat offerings:', e);
@@ -47,7 +47,7 @@ export default function Paywall() {
             setPurchasing(true);
             const Purchases = require('react-native-purchases').default;
             const { customerInfo } = await Purchases.purchasePackage(pkg);
-            if (typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
+            if (typeof customerInfo.entitlements.active['premium'] !== "undefined") {
                 await verifyReceiptWithBackend();
                 Alert.alert("Success", "Welcome to Premium!");
                 router.back();
@@ -66,7 +66,7 @@ export default function Paywall() {
             setPurchasing(true);
             const Purchases = require('react-native-purchases').default;
             const customerInfo = await Purchases.restorePurchases();
-            if (typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
+            if (typeof customerInfo.entitlements.active['premium'] !== "undefined") {
                 await verifyReceiptWithBackend();
                 Alert.alert("Success", "Purchases successfully restored.");
                 router.back();
@@ -159,37 +159,9 @@ export default function Paywall() {
 
             <View className="space-y-4 mb-8">
                 {products.length === 0 ? (
-                    <>
-                        <HapticButton
-                            hapticType="success"
-                            onPress={() => Alert.alert("Test Mode", "Trigger real Yearly subscription purchase.")}
-                            className="bg-[#0A84FF] border border-[#0A84FF]/50 shadow-lg shadow-[#0A84FF]/20 rounded-3xl p-6 flex-row justify-between items-center"
-                        >
-                            <View>
-                                <Text className="text-white font-bold text-lg mb-1">Yearly Plan</Text>
-                                <View className="bg-white/20 self-start px-2 py-1 rounded-md mb-1">
-                                    <Text className="text-white text-xs font-bold uppercase">Best Value</Text>
-                                </View>
-                            </View>
-                            <View className="items-end">
-                                <Text className="text-white font-bold text-2xl">$89.99<Text className="text-base font-normal">/yr</Text></Text>
-                            </View>
-                        </HapticButton>
-
-                        <HapticButton
-                            hapticType="light"
-                            onPress={() => Alert.alert("Test Mode", "Trigger real Monthly subscription purchase.")}
-                            className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex-row justify-between items-center"
-                        >
-                            <View>
-                                <Text className="text-white font-bold text-lg mb-1">Monthly Plan</Text>
-                                <Text className="text-zinc-400 text-sm">Flexible billing</Text>
-                            </View>
-                            <View className="items-end">
-                                <Text className="text-zinc-300 font-bold text-xl">$9.99<Text className="text-base font-normal">/mo</Text></Text>
-                            </View>
-                        </HapticButton>
-                    </>
+                    <View className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 items-center">
+                        <Text className="text-zinc-400 text-center text-lg">No subscription packages available right now.</Text>
+                    </View>
                 ) : (
                     products.map((pkg: any) => {
                         const isYearly = pkg.packageType === 'ANNUAL';

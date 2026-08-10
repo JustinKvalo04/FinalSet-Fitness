@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+app-native
+submission.zip
+.expo
+dist
+build
+.DS_Store

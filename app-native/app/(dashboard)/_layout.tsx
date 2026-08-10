@@ -17,9 +17,9 @@ export default function DashboardLayout() {
         const initRevenueCat = async () => {
             try {
                 const Purchases = require('react-native-purchases').default;
-                if (Platform.OS === 'ios') {
+                if (Platform.OS === 'ios' && process.env.EXPO_PUBLIC_REVENUECAT_API_KEY) {
                     // Lazy configure to prevent launch crashes
-                    Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY || 'appl_dummy_key' });
+                    Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY });
                 }
             } catch (err) {
                 console.warn('RevenueCat init error:', err);

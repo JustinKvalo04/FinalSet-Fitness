@@ -127,13 +127,13 @@ export default function Workouts() {
 
     const handlePremiumAction = (actionName: string) => {
         if (!isPremium) {
-            if (actionName === 'Edit Exercises' || actionName === 'Create Custom Program' || actionName === 'Edit Program') {
+            if (actionName === 'Create Custom Program') {
                 setShowPremiumModal(true);
             } else {
                 router.push('/(dashboard)/paywall');
             }
         } else {
-            if (actionName === 'Edit Program' || actionName === 'Create Custom Program') {
+            if (actionName === 'Create Custom Program') {
                 setShowDaySelectModal(true);
             }
         }
@@ -425,7 +425,7 @@ export default function Workouts() {
                         <View className="flex-row justify-between items-start mb-2">
                             <Text className="text-3xl font-bold text-white flex-1">{selectedSplit.name}</Text>
                             <View className="flex-row">
-                                <HapticButton hapticType="light" onPress={() => handlePremiumAction('Edit Program')} className="bg-zinc-800 px-3 py-1.5 rounded-lg ml-2 border border-amber-500/20">
+                                <HapticButton hapticType="light" onPress={() => setShowDaySelectModal(true)} className="bg-zinc-800 px-3 py-1.5 rounded-lg ml-2 border border-amber-500/20">
                                     <Text className="text-amber-500 font-semibold text-xs">Edit</Text>
                                 </HapticButton>
                                 <HapticButton hapticType="light" onPress={handleChangeProgram} className="bg-zinc-800 px-3 py-1.5 rounded-lg ml-2">
@@ -485,7 +485,10 @@ export default function Workouts() {
                             <HapticButton
                                 hapticType="light"
                                 onPress={() => {
-                                    if (!isPremium) {
+                                    const customWorkoutCount = Object.keys(customOverrides || {}).length;
+                                    const isAlreadyCustomized = customOverrides && customOverrides[selectedDay.id];
+                                    
+                                    if (!isPremium && !isAlreadyCustomized && customWorkoutCount >= 2) {
                                         setShowPremiumModal(true);
                                     } else {
                                         router.push(`/(dashboard)/edit-workout?splitId=${selectedSplit.id}&dayId=${selectedDay.id}`);
@@ -625,7 +628,7 @@ export default function Workouts() {
                         </View>
                         <Text className="text-2xl font-bold text-white mb-2 text-center tracking-tight">Customize Your Training</Text>
                         <Text className="text-zinc-400 font-medium text-center text-sm mb-6 leading-relaxed">
-                            Build workouts exactly how you want.
+                            You've reached the free limit of 2 custom workouts. Upgrade to Premium to unlock unlimited custom workouts and editing.
                         </Text>
 
                         <View className="w-full space-y-4 mb-8 px-2">
@@ -690,7 +693,14 @@ export default function Workouts() {
                                 hapticType="light"
                                 onPress={() => {
                                     setShowDaySelectModal(false);
-                                    router.push(`/(dashboard)/edit-workout?splitId=${selectedSplit?.id}&dayId=${day.id}`);
+                                    const customWorkoutCount = Object.keys(customOverrides || {}).length;
+                                    const isAlreadyCustomized = customOverrides && customOverrides[day.id];
+                                    
+                                    if (!isPremium && !isAlreadyCustomized && customWorkoutCount >= 2) {
+                                        setTimeout(() => setShowPremiumModal(true), 400);
+                                    } else {
+                                        router.push(`/(dashboard)/edit-workout?splitId=${selectedSplit?.id}&dayId=${day.id}`);
+                                    }
                                 }}
                                 className="bg-zinc-800 py-4 px-5 rounded-xl flex-row items-center justify-between mb-3"
                             >

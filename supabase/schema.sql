@@ -145,3 +145,11 @@ alter table public.profiles
 alter table public.profiles
   add column if not exists custom_exercises jsonb default '[]'::jsonb;
 
+-- Phase 85: Account Deletion RPC
+create or replace function public.delete_user()
+returns void as $$
+begin
+  delete from auth.users where id = auth.uid();
+end;
+$$ language plpgsql security definer;
+
