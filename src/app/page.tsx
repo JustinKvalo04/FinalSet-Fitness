@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
+
 import { NavBar } from '@/components/NavBar';
 import { Footer } from '@/components/Footer';
 import { FadeIn } from '@/components/FadeIn';
@@ -64,14 +64,12 @@ export default function LandingPage() {
             <FadeIn delay={0.4} direction="up" duration={0.8}>
               <div className="relative max-w-[280px] md:max-w-md mx-auto group">
                 <div className="absolute inset-0 bg-gradient-to-b from-blue-500/30 to-purple-600/30 rounded-[3rem] blur-2xl group-hover:blur-3xl transition-all duration-700" />
-                <Image
+                <img
                   src="/screenshots/dashboard.png"
                   alt="FinalSet Dashboard"
                   width={600}
                   height={1200}
                   className="relative rounded-[2.5rem] border-[6px] md:border-[8px] border-zinc-900 shadow-2xl object-cover transform transition-transform duration-700 group-hover:-translate-y-2"
-                  priority
-                  unoptimized
                 />
               </div>
             </FadeIn>
@@ -131,7 +129,7 @@ export default function LandingPage() {
                 <FadeIn direction="right">
                   <div className="relative max-w-[260px] md:max-w-[300px]">
                     <div className="absolute -inset-10 bg-blue-500/20 blur-3xl rounded-full" />
-                    <Image src="/screenshots/workout-logging.png" alt="Workout Logging" width={320} height={650} className="relative rounded-[2rem] border-[4px] border-zinc-900 shadow-2xl" unoptimized />
+                    <img src="/screenshots/workout-logging.png" alt="Workout Logging" width={320} height={650} className="relative rounded-[2rem] border-[4px] border-zinc-900 shadow-2xl" />
                   </div>
                 </FadeIn>
               </div>
@@ -154,7 +152,7 @@ export default function LandingPage() {
                 <FadeIn direction="left">
                   <div className="relative max-w-[260px] md:max-w-[300px]">
                     <div className="absolute -inset-10 bg-emerald-500/20 blur-3xl rounded-full" />
-                    <Image src="/screenshots/macros.png" alt="Macro Tracking" width={320} height={650} className="relative rounded-[2rem] border-[4px] border-zinc-900 shadow-2xl" unoptimized />
+                    <img src="/screenshots/macros.png" alt="Macro Tracking" width={320} height={650} className="relative rounded-[2rem] border-[4px] border-zinc-900 shadow-2xl" />
                   </div>
                 </FadeIn>
               </div>
