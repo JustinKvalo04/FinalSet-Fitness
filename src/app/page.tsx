@@ -71,6 +71,7 @@ export default function LandingPage() {
                   height={1200}
                   className="relative rounded-[2.5rem] border-[6px] md:border-[8px] border-zinc-900 shadow-2xl object-cover transform transition-transform duration-700 group-hover:-translate-y-2"
                   priority
+                  unoptimized
                 />
               </div>
             </FadeIn>
@@ -130,7 +131,7 @@ export default function LandingPage() {
                 <FadeIn direction="right">
                   <div className="relative max-w-[260px] md:max-w-[300px]">
                     <div className="absolute -inset-10 bg-blue-500/20 blur-3xl rounded-full" />
-                    <Image src="/screenshots/workout-logging.png" alt="Workout Logging" width={320} height={650} className="relative rounded-[2rem] border-[4px] border-zinc-900 shadow-2xl" />
+                    <Image src="/screenshots/workout-logging.png" alt="Workout Logging" width={320} height={650} className="relative rounded-[2rem] border-[4px] border-zinc-900 shadow-2xl" unoptimized />
                   </div>
                 </FadeIn>
               </div>
@@ -153,7 +154,7 @@ export default function LandingPage() {
                 <FadeIn direction="left">
                   <div className="relative max-w-[260px] md:max-w-[300px]">
                     <div className="absolute -inset-10 bg-emerald-500/20 blur-3xl rounded-full" />
-                    <Image src="/screenshots/macros.png" alt="Macro Tracking" width={320} height={650} className="relative rounded-[2rem] border-[4px] border-zinc-900 shadow-2xl" />
+                    <Image src="/screenshots/macros.png" alt="Macro Tracking" width={320} height={650} className="relative rounded-[2rem] border-[4px] border-zinc-900 shadow-2xl" unoptimized />
                   </div>
                 </FadeIn>
               </div>
